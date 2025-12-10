@@ -10,8 +10,8 @@
     "clean": "expo-module clean && rm -rf plugin/build",
     "lint": "expo-module lint",
     "test": "expo-module test",
-    "prepare": "expo-module prepare",
-    "prepublishOnly": "expo-module prepublishOnly",
+    "prepare": "expo-module prepare && bash plugin/src/scripts/copy.sh",
+    "prepublishOnly": "expo-module prepublishOnly && bash plugin/src/scripts/copy.sh",
     "expo-module": "expo-module",
     "open:ios": "xed example/ios",
     "open:android": "open -a \"Android Studio\" example/android"
