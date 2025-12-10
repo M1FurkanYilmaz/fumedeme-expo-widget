@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android", "web"],
+  "apple": {
+    "modules": ["FumedemeExpoWidgetModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.fumedemeexpowidget.FumedemeExpoWidgetModule"]
+  }
+}

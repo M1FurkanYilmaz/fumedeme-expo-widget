@@ -1,0 +1,51 @@
+{
+  "name": "fumedeme-expo-widget",
+  "version": "0.1.0",
+  "description": "Expo native module for generating widget to React Native Expo applications by Fumedeme",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "scripts": {
+    "build": "tsc -b plugin && bash plugin/src/scripts/copy.sh && expo-module build",
+    "build:plugin": "cd plugin && tsc",
+    "clean": "expo-module clean && rm -rf plugin/build",
+    "lint": "expo-module lint",
+    "test": "expo-module test",
+    "prepare": "expo-module prepare",
+    "prepublishOnly": "expo-module prepublishOnly",
+    "expo-module": "expo-module",
+    "open:ios": "xed example/ios",
+    "open:android": "open -a \"Android Studio\" example/android"
+  },
+  "keywords": [
+    "react-native",
+    "expo",
+    "fumedeme-expo-widget",
+    "FumedemeExpoWidget",
+    "widget",
+    "ios-widget",
+    "android-widget"
+  ],
+  "repository": "https://github.com/M1FurkanYilmaz/fumedeme-expo-widget",
+  "bugs": {
+    "url": "https://github.com/M1FurkanYilmaz/fumedeme-expo-widget/issues"
+  },
+  "author": "Fumedeme <1M.FurkanYilmaz@gmail.com> (https://github.com/M1FurkanYilmaz)",
+  "license": "MIT",
+  "homepage": "https://github.com/M1FurkanYilmaz/fumedeme-expo-widget#readme",
+  "dependencies": {
+    "expo-modules-autolinking": "^3.0.23",
+    "expo-modules-core": "^3.0.28"
+  },
+  "devDependencies": {
+    "@expo/config-plugins": "~9.0.0",
+    "@types/react": "~19.1.0",
+    "expo": "^54.0.27",
+    "expo-module-scripts": "^5.0.8",
+    "react-native": "0.81.5"
+  },
+  "peerDependencies": {
+    "expo": "*",
+    "react": "*",
+    "react-native": "*"
+  }
+}

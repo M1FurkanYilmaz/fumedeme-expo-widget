@@ -1,0 +1,443 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="8dp"
+    android:background="@drawable/app_widget_background">
+
+    <!-- Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="4dp">
+
+        <TextView
+            android:id="@+id/widgetTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cihaz Durumu"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="#222222" />
+
+        <TextView
+            android:id="@+id/widgetSubtitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Favori istasyonunuzdaki cihazların anlık durumu"
+            android:textSize="10sp"
+            android:textColor="#777777"
+            android:layout_marginTop="2dp" />
+    </LinearLayout>
+
+    <!-- Cihaz kartları: 2 sütunlu grid düzeni (1–2, 3–4, 5–6) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:divider="@android:color/transparent"
+        android:showDividers="none">
+
+        <!-- Satır 1: device1 & device2 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:id="@+id/device1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:padding="6dp"
+                android:layout_margin="4dp"
+                android:background="@drawable/app_widget_inner_view_background"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/deviceId1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textStyle="bold"
+                    android:textSize="12sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:background="#F5F5F5"
+                    android:padding="4dp">
+
+                    <ImageView
+                        android:id="@+id/plug1_1"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_margin="4dp"
+                        android:background="@drawable/plug_background"
+                        android:visibility="gone" />
+
+                    <ImageView
+                        android:id="@+id/plug1_2"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_margin="4dp"
+                        android:background="@drawable/plug_background"
+                        android:visibility="gone" />
+
+                    <ImageView
+                        android:id="@+id/plug1_3"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_margin="4dp"
+                        android:background="@drawable/plug_background"
+                        android:visibility="gone" />
+
+                    <ImageView
+                        android:id="@+id/plug1_4"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_margin="4dp"
+                        android:background="@drawable/plug_background"
+                        android:visibility="gone" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/device2"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:padding="6dp"
+                android:layout_margin="4dp"
+                android:background="@drawable/app_widget_inner_view_background"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/deviceId2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textStyle="bold"
+                    android:textSize="12sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:background="#F5F5F5"
+                    android:padding="4dp">
+
+                    <ImageView
+                        android:id="@+id/plug2_1"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_margin="4dp"
+                        android:background="@drawable/plug_background"
+                        android:visibility="gone" />
+
+                    <ImageView
+                        android:id="@+id/plug2_2"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_margin="4dp"
+                        android:background="@drawable/plug_background"
+                        android:visibility="gone" />
+
+                    <ImageView
+                        android:id="@+id/plug2_3"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_margin="4dp"
+                        android:background="@drawable/plug_background"
+                        android:visibility="gone" />
+
+                    <ImageView
+                        android:id="@+id/plug2_4"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_margin="4dp"
+                        android:background="@drawable/plug_background"
+                        android:visibility="gone" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Satır 2: device3 & device4 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:id="@+id/device3"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:padding="6dp"
+                android:layout_margin="4dp"
+                android:background="@drawable/app_widget_inner_view_background"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/deviceId3"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textStyle="bold"
+                    android:textSize="12sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:background="#F5F5F5"
+                    android:padding="4dp">
+
+                    <ImageView
+                        android:id="@+id/plug3_1"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_margin="4dp"
+                        android:background="@drawable/plug_background"
+                        android:visibility="gone" />
+
+                    <ImageView
+                        android:id="@+id/plug3_2"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_margin="4dp"
+                        android:background="@drawable/plug_background"
+                        android:visibility="gone" />
+
+                    <ImageView
+                        android:id="@+id/plug3_3"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_margin="4dp"
+                        android:background="@drawable/plug_background"
+                        android:visibility="gone" />
+
+                    <ImageView
+                        android:id="@+id/plug3_4"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_margin="4dp"
+                        android:background="@drawable/plug_background"
+                        android:visibility="gone" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/device4"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:padding="6dp"
+                android:layout_margin="4dp"
+                android:background="@drawable/app_widget_inner_view_background"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/deviceId4"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textStyle="bold"
+                    android:textSize="12sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:background="#F5F5F5"
+                    android:padding="4dp">
+
+                    <ImageView
+                        android:id="@+id/plug4_1"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_margin="4dp"
+                        android:background="@drawable/plug_background"
+                        android:visibility="gone" />
+
+                    <ImageView
+                        android:id="@+id/plug4_2"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_margin="4dp"
+                        android:background="@drawable/plug_background"
+                        android:visibility="gone" />
+
+                    <ImageView
+                        android:id="@+id/plug4_3"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_margin="4dp"
+                        android:background="@drawable/plug_background"
+                        android:visibility="gone" />
+
+                    <ImageView
+                        android:id="@+id/plug4_4"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_margin="4dp"
+                        android:background="@drawable/plug_background"
+                        android:visibility="gone" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Satır 3: device5 & device6 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:id="@+id/device5"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:padding="6dp"
+                android:layout_margin="4dp"
+                android:background="@drawable/app_widget_inner_view_background"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/deviceId5"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textStyle="bold"
+                    android:textSize="12sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:background="#F5F5F5"
+                    android:padding="4dp">
+
+                    <ImageView
+                        android:id="@+id/plug5_1"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_margin="4dp"
+                        android:background="@drawable/plug_background"
+                        android:visibility="gone" />
+
+                    <ImageView
+                        android:id="@+id/plug5_2"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_margin="4dp"
+                        android:background="@drawable/plug_background"
+                        android:visibility="gone" />
+
+                    <ImageView
+                        android:id="@+id/plug5_3"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_margin="4dp"
+                        android:background="@drawable/plug_background"
+                        android:visibility="gone" />
+
+                    <ImageView
+                        android:id="@+id/plug5_4"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_margin="4dp"
+                        android:background="@drawable/plug_background"
+                        android:visibility="gone" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/device6"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:padding="6dp"
+                android:layout_margin="4dp"
+                android:background="@drawable/app_widget_inner_view_background"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/deviceId6"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textStyle="bold"
+                    android:textSize="12sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:background="#F5F5F5"
+                    android:padding="4dp">
+
+                    <ImageView
+                        android:id="@+id/plug6_1"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_margin="4dp"
+                        android:background="@drawable/plug_background"
+                        android:visibility="gone" />
+
+                    <ImageView
+                        android:id="@+id/plug6_2"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_margin="4dp"
+                        android:background="@drawable/plug_background"
+                        android:visibility="gone" />
+
+                    <ImageView
+                        android:id="@+id/plug6_3"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_margin="4dp"
+                        android:background="@drawable/plug_background"
+                        android:visibility="gone" />
+
+                    <ImageView
+                        android:id="@+id/plug6_4"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_margin="4dp"
+                        android:background="@drawable/plug_background"
+                        android:visibility="gone" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Status and refresh section -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="8dp">
+        
+        <TextView
+            android:id="@+id/lastUpdated"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:textSize="10sp"
+            android:textColor="#808080" />
+            
+        <ImageButton
+            android:id="@+id/refreshButton"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:background="@android:drawable/ic_popup_sync"
+            android:contentDescription="Refresh data" />
+    </LinearLayout>
+</LinearLayout>

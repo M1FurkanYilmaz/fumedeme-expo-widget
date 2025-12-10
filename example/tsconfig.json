@@ -1,0 +1,10 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "fumedeme-expo-widget": ["../src/index"],
+      "fumedeme-expo-widget/*": ["../src/*"]
+    }
+  }
+}
