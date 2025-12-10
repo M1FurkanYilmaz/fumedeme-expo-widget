@@ -40,9 +40,13 @@ async function copyResourceFiles(
   const resDest = path.join(platformRoot, "app", "src", "main", "res");
   const lowercaseWidgetName = widgetName.toLowerCase();
 
-  if (!fs.existsSync(widgetSourceDir)) {
+  if (!fs.existsSync(source)) {
+    const resRoot = path.join(widgetSourceDir, "android/src/main/res");
+
+    await fs.promises.mkdir(resRoot, { recursive: true });
+
     const templateFolder = path.join(__dirname, "static", "res");
-    await fs.promises.cp(templateFolder, source, { recursive: true });
+    await fs.promises.cp(templateFolder, resRoot, { recursive: true });
 
     // Rename layout file with lowercase name
     const layoutDir = path.join(source, "layout");
