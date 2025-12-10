@@ -17,8 +17,6 @@ export const withWidgetIos: ConfigPlugin<Props> = (
   const { appGroupIdentifier, devTeamId } = ios;
   const topLevelFiles = [`${widgetName}.swift`, "Assets.xcassets"];
 
-  console.log("ios konfiglere başlandı TOP LEVEL FILES: ", topLevelFiles);
-
   // SINGLE withXcodeProject call - all Xcode project modifications together
   config = withXcodeProject(config, async (config) => {
     const appName = config.modRequest.projectName!;
@@ -69,8 +67,6 @@ export const withWidgetIos: ConfigPlugin<Props> = (
 
     // 3. Add source file to Xcode project
     proj.addSourceFile(targetSwiftFileName, { target: targetUuid }, groupUuid);
-
-    console.log("with xcode target, entitlements, and source files configured");
 
     return config;
   });
@@ -164,20 +160,14 @@ export const withWidgetIos: ConfigPlugin<Props> = (
         { recursive: true }
       );
 
-      console.log("with widget files copied to disk");
-
       return config;
     },
   ]);
 
   // Keep these separate - they don't modify Xcode project
   config = withWidgetPlist(config, { widgetName });
-  console.log("with widget plist configi sonrası");
 
   config = withWidgetEAS(config, { widgetName });
-  console.log("with widget eas configi sonrası");
-
-  console.log("ios konfigleri bitti");
 
   return config;
 };

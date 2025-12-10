@@ -17,19 +17,16 @@ export const withWidgetAndroid: ConfigPlugin<Props> = (
   try {
     config = withWidgetManifest(config, { widgetName });
   } catch (error) {
-    console.log("withWidgetManifest hatası: ", error);
     throw error;
   }
   try {
     config = withWidgetProjectBuildGradle(config);
   } catch (error) {
-    console.log("withWidgetProjectBuildGradle hatası: ", error);
     throw error;
   }
   try {
     config = withWidgetAppBuildGradle(config);
   } catch (error) {
-    console.log("withWidgetAppBuildGradle hatası: ", error);
     throw error;
   }
   try {
@@ -38,13 +35,11 @@ export const withWidgetAndroid: ConfigPlugin<Props> = (
       appGroupName: appGroupIdentifier,
     });
   } catch (error) {
-    console.log("withWidgetSourceCodes hatası: ", error);
     throw error;
   }
   try {
     config = withSerializationProjectBuildGradle(config);
   } catch (error) {
-    console.log("withSerializationProjectBuildGradle hatası: ", error);
     throw error;
   }
   return config;
