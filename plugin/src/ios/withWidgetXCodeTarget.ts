@@ -23,13 +23,11 @@ export const addBroadcastExtensionXcodeTarget = async (
   }: AddXcodeTargetParams & { topLevelFiles: string[] }
 ) => {
   if (proj.findTargetKey(extensionName)) {
-    console.log("AYNI TARGET BULUNDU: ", extensionName);
     return;
   }
 
   const targetUuid = proj.generateUuid();
   const groupName = "Embed App Extensions";
-  console.log("TARGET ADI ", targetUuid);
 
   const xCConfigurationList = addXCConfigurationList(proj, {
     extensionBundleIdentifier,
@@ -233,10 +231,6 @@ const addToPbxNativeTargetSection = (
     xCConfigurationList: any;
   }
 ) => {
-  console.log("PBX TARGETE GİRİLDİ: ");
-  console.log("extention name: ", extensionName);
-  console.log("target uuid: ", targetUuid);
-  console.log("product file: ", productFile);
   const target = {
     uuid: targetUuid,
     pbxNativeTarget: {
@@ -251,7 +245,6 @@ const addToPbxNativeTargetSection = (
       productType: quoted("com.apple.product-type.app-extension"),
     },
   };
-  console.log("target: ", target);
 
   proj.addToPbxNativeTargetSection(target);
 
