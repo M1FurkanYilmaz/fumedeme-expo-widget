@@ -39,6 +39,22 @@ Add the plugin to your `app.json`:
 - `ios.devTeamId`: Your Apple Developer Team ID
 - `ios.appGroupIdentifier`: App Group identifier for iOS (must start with "group.")
 
+Make sure the Group Identifier is same as in your ios entitlements:
+
+```json
+{
+  "expo": {
+    "ios": {
+      "entitlements": {
+        "com.apple.security.application-groups": [
+          "group.com.yourcompany.yourapp"
+        ]
+      }
+    }
+  }
+}
+```
+
 ### 2. Prebuild Your App
 
 ```bash
