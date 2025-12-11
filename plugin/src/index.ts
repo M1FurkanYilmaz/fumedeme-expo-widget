@@ -1,5 +1,4 @@
 import { ConfigPlugin, withPlugins } from "@expo/config-plugins";
-
 import { withWidgetAndroid } from "./android/withWidgetAndroid";
 import { withWidgetIos } from "./ios/withWidgetIos";
 
@@ -13,6 +12,12 @@ export interface Props {
 }
 
 const withAppConfigs: ConfigPlugin<Props> = (config, options) => {
+  const bundleIdentifier = config.ios?.bundleIdentifier;
+
+  if (!bundleIdentifier) {
+    return config;
+  }
+
   return withPlugins(config, [
     [withWidgetAndroid, options],
     [withWidgetIos, options],
