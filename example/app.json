@@ -17,7 +17,8 @@
       "bundleIdentifier": "expo.modules.fumedemeexpowidget.example",
       "entitlements": {
         "com.apple.security.application-groups": [
-          "group.expo.modules.istasyondeneme.example"
+          "group.expo.modules.istasyondeneme.example",
+          "group.expo.modules.havadeneme.example"
         ]
       }
     },
@@ -36,13 +37,22 @@
     "plugins": [
       [
         "fumedeme-expo-widget",
-        {
-          "widgetName": "DenemeWidget",
-          "ios": {
-            "devTeamId": "YOUR_TEAM_ID",
-            "appGroupIdentifier": "group.expo.modules.istasyondeneme.example"
+        [
+          {
+            "widgetName": "DenemeIstasyonWidget",
+            "ios": {
+              "devTeamId": "YOUR_TEAM_ID",
+              "appGroupIdentifier": "group.expo.modules.istasyondeneme.example"
+            }
+          },
+          {
+            "widgetName": "DenemeHavaWidget",
+            "ios": {
+              "devTeamId": "YOUR_TEAM_ID",
+              "appGroupIdentifier": "group.expo.modules.havadeneme.example"
+            }
           }
-        }
+        ]
       ]
     ]
   }

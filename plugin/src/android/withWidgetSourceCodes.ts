@@ -12,12 +12,13 @@ export const withWidgetSourceCodes: ConfigPlugin<{
     "android",
     async (newConfig) => {
       const projectRoot = newConfig.modRequest.projectRoot;
-      const platformRoot = newConfig.modRequest.platformProjectRoot;
+      const platformRoot = newConfig.modRequest.platform;
       const widgetDir = path.join(projectRoot, widgetName);
+
       await copyResourceFiles(widgetDir, platformRoot, widgetName);
 
       const packageName = config.android?.package;
-      prepareSourceCodes(
+      await prepareSourceCodes(
         widgetDir,
         platformRoot,
         packageName!,
@@ -42,7 +43,6 @@ async function copyResourceFiles(
 
   if (!fs.existsSync(source)) {
     const resRoot = path.join(widgetSourceDir, "android/src/main/res");
-
     await fs.promises.mkdir(resRoot, { recursive: true });
 
     const templateFolder = path.join(__dirname, "static", "res");
@@ -65,7 +65,6 @@ async function copyResourceFiles(
       const newXmlPath = path.join(xmlDir, `${lowercaseWidgetName}_info.xml`);
       if (fs.existsSync(oldXmlPath)) {
         await fs.promises.rename(oldXmlPath, newXmlPath);
-
         // Update content inside xml info file
         let xmlContent = fs.readFileSync(newXmlPath, "utf8");
         xmlContent = xmlContent.replace(
@@ -89,29 +88,26 @@ async function prepareSourceCodes(
   config: any
 ) {
   const packageDirPath = packageName.replace(/\./g, "/");
-
   const userJavaDir = path.join(
     widgetDir,
     "android/src/main/java",
     packageDirPath
   );
-
   const templateJavaDir = path.join(__dirname, "static/java/package_name");
-
   const widgetSourceFilePath = path.join(userJavaDir, `${widgetName}.kt`);
 
-  // 1) Eğer kullanıcı dosyaları yoksa → template kopyalanır (sadece ilk kez)
+  // 1) If user files don't exist → copy template (first time only)
   if (!fs.existsSync(userJavaDir)) {
     await fs.promises.mkdir(userJavaDir, { recursive: true });
     await fs.promises.cp(templateJavaDir, userJavaDir, { recursive: true });
 
-    // widget.kt → kullanıcı widgetName.kt
+    // widget.kt → user's widgetName.kt
     await fs.promises.rename(
       path.join(userJavaDir, "widget.kt"),
       widgetSourceFilePath
     );
 
-    // template içeriği replace edilir
+    // Replace template content
     let content = fs.readFileSync(widgetSourceFilePath, "utf8");
     const lowercaseWidgetName = widgetName.toLowerCase();
 
@@ -121,31 +117,93 @@ async function prepareSourceCodes(
     content = content.replace(/\{\{PACKAGE_NAME\}\}/g, packageName);
 
     const bundeIdentifier = BundleIdentifier.getBundleIdentifier(config);
-
     if (bundeIdentifier)
-      content = content.replace(/\{\{PACKAGE_NAME\}\}/g, bundeIdentifier);
+      content = content.replace(/\{\{BUNDLE_IDENTIFIER\}\}/g, bundeIdentifier);
 
     fs.writeFileSync(widgetSourceFilePath, content);
   }
 
-  // 2) Kullanıcı dosyaları Android projesine kopyalanır
+  // 2) Copy user files to Android project
   const androidAppJavaDir = path.join(
     platformRoot,
     "app/src/main/java",
     packageDirPath
   );
-
   await fs.promises.cp(userJavaDir, androidAppJavaDir, { recursive: true });
 
-  // 3) Paket ismi overwrite edilir (ama kullanıcının kodunu bozmadan)
+  // 3) Make shared code private to avoid conflicts between widgets
   const destWidgetFile = path.join(androidAppJavaDir, `${widgetName}.kt`);
-
   let destContent = fs.readFileSync(destWidgetFile, "utf8");
 
-  destContent = destContent.replace(
-    /^package .*\n/,
-    `package ${packageName}\n`
-  );
+  // Update package name
+  destContent = destContent.replace(/^package .*$/m, `package ${packageName}`);
+
+  // Make all shared components private/internal to this widget file
+  destContent = makeSharedCodePrivate(destContent, widgetName);
 
   fs.writeFileSync(destWidgetFile, destContent);
+}
+
+function makeSharedCodePrivate(content: string, widgetName: string): string {
+  // Make data classes private with unique names
+  content = content.replace(
+    /@Serializable\s+data class Plug\s*\(/g,
+    `@Serializable\nprivate data class ${widgetName}_Plug(`
+  );
+
+  content = content.replace(
+    /@Serializable\s+data class Device\s*\(/g,
+    `@Serializable\nprivate data class ${widgetName}_Device(`
+  );
+
+  // Update all references to Plug -> widgetName_Plug
+  content = content.replace(
+    /(\s|:|<|,|\()Plug(\s|>|,|\)|\.)/g,
+    `$1${widgetName}_Plug$2`
+  );
+
+  // Update all references to Device -> widgetName_Device
+  content = content.replace(
+    /(\s|:|<|,|\()Device(\s|>|,|\)|\.)/g,
+    `$1${widgetName}_Device$2`
+  );
+
+  // Make getItem function private
+  content = content.replace(
+    /^internal fun getItem\s*\(/gm,
+    `private fun ${widgetName}_getItem(`
+  );
+
+  content = content.replace(
+    /^fun getItem\s*\(/gm,
+    `private fun ${widgetName}_getItem(`
+  );
+
+  // Update all calls to getItem
+  content = content.replace(/\bgetItem\(/g, `${widgetName}_getItem(`);
+
+  // Make DeviceDataManager class private with unique name
+  content = content.replace(
+    /class DeviceDataManager\s+private constructor\(\)/g,
+    `private class ${widgetName}_DeviceDataManager private constructor()`
+  );
+
+  // Update companion object reference
+  content = content.replace(
+    /companion object\s*\{\s*val shared = DeviceDataManager\(\)/g,
+    `companion object {\n        val shared = ${widgetName}_DeviceDataManager()`
+  );
+
+  // Update all references to DeviceDataManager
+  content = content.replace(
+    /DeviceDataManager\.shared/g,
+    `${widgetName}_DeviceDataManager.shared`
+  );
+
+  content = content.replace(
+    /(\s|:|<|,|\()DeviceDataManager(\s|>|,|\)|\.)/g,
+    `$1${widgetName}_DeviceDataManager$2`
+  );
+
+  return content;
 }
