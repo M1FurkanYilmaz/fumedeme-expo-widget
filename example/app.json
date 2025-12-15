@@ -14,13 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "expo.modules.fumedemeexpowidget.example",
-      "entitlements": {
-        "com.apple.security.application-groups": [
-          "group.expo.modules.istasyondeneme.example",
-          "group.expo.modules.havadeneme.example"
-        ]
-      }
+      "bundleIdentifier": "expo.modules.fumedemeexpowidget.example"
     },
     "android": {
       "adaptiveIcon": {
