@@ -46,8 +46,8 @@ data class Device(
     val plugs: List<Plug>
 )
 
-class DenemeWidget : AppWidgetProvider() {
-    private val TAG = "DenemeWidget"
+class DenemeIstasyonWidget : AppWidgetProvider() {
+    private val TAG = "DenemeIstasyonWidget"
     
     override fun onUpdate(
         context: Context,
@@ -58,10 +58,10 @@ class DenemeWidget : AppWidgetProvider() {
         
         // Set up the refresh button for each widget
         for (appWidgetId in appWidgetIds) {
-            val views = RemoteViews(context.packageName, R.layout.denemewidget)
+            val views = RemoteViews(context.packageName, R.layout.denemeistasyonwidget)
             
             // Create refresh intent
-            val refreshIntent = Intent(context, DenemeWidget::class.java)
+            val refreshIntent = Intent(context, DenemeIstasyonWidget::class.java)
             refreshIntent.action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
             refreshIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, intArrayOf(appWidgetId))
             val pendingIntent = PendingIntent.getBroadcast(
@@ -111,7 +111,7 @@ class DenemeWidget : AppWidgetProvider() {
                 // Update widgets with error state
                 for (appWidgetId in appWidgetIds) {
                     val errorViews =
-                        RemoteViews(context.packageName, R.layout.denemewidget)
+                        RemoteViews(context.packageName, R.layout.denemeistasyonwidget)
                     errorViews.setTextViewText(R.id.lastUpdated, "Error: Cannot load data")
                     appWidgetManager.updateAppWidget(appWidgetId, errorViews)
                 }
@@ -128,7 +128,7 @@ class DenemeWidget : AppWidgetProvider() {
     ) {
         try {
             val widgetSize = getWidgetSize(appWidgetManager, appWidgetId)
-            val views = RemoteViews(context.packageName, R.layout.denemewidget)
+            val views = RemoteViews(context.packageName, R.layout.denemeistasyonwidget)
 
             // Başlıkta istasyon adını göster; boşsa varsayılan başlığı kullan
             val title =
@@ -199,10 +199,10 @@ class DenemeWidget : AppWidgetProvider() {
             
             // Update widget
             appWidgetManager.updateAppWidget(appWidgetId, views)
-            Log.d(TAG, "DenemeWidget $appWidgetId updated with ${limitedDevices.size} devices")
+            Log.d(TAG, "DenemeIstasyonWidget $appWidgetId updated with ${limitedDevices.size} devices")
             
         } catch (e: Exception) {
-            Log.e(TAG, "Error updating DenemeWidget $appWidgetId", e)
+            Log.e(TAG, "Error updating DenemeIstasyonWidget $appWidgetId", e)
         }
     }
 
@@ -211,7 +211,7 @@ class DenemeWidget : AppWidgetProvider() {
         appWidgetManager: AppWidgetManager,
         appWidgetId: Int
     ) {
-        val views = RemoteViews(context.packageName, R.layout.denemewidget)
+        val views = RemoteViews(context.packageName, R.layout.denemeistasyonwidget)
         views.setTextViewText(
             R.id.widgetTitle,
             context.getString(R.string.no_favorite_station_title)

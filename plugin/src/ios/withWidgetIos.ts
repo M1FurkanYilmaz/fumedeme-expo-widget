@@ -2,29 +2,31 @@ import {
   ConfigPlugin,
   withXcodeProject,
   withDangerousMod,
+  withEntitlementsPlist,
 } from "@expo/config-plugins";
 import * as fs from "fs";
 import * as path from "path";
 import { withWidgetEAS } from "./withWidgetEAS";
 import { withWidgetPlist } from "./withWidgetPlist";
-import { Props } from "..";
+import { WidgetConfig } from "..";
 import { addBroadcastExtensionXcodeTarget } from "./withWidgetXCodeTarget";
 
-export const withWidgetIos: ConfigPlugin<Props> = (
+export const withWidgetIos: ConfigPlugin<WidgetConfig> = (
   config,
   { widgetName, ios }
 ) => {
   const { appGroupIdentifier, devTeamId } = ios;
-  const topLevelFiles = [`${widgetName}.swift`, "Assets.xcassets"];
+  const topLevelFiles = ios.topLevelFiles || [
+    `${widgetName}.swift`,
+    "Assets.xcassets",
+  ];
 
-  // SINGLE withXcodeProject call - all Xcode project modifications together
   config = withXcodeProject(config, async (config) => {
     const appName = config.modRequest.projectName!;
-    const extensionBundleIdentifier = `${config.ios!.bundleIdentifier!}.widget`;
+    const extensionBundleIdentifier = `${config.ios!.bundleIdentifier!}.${widgetName.toLowerCase()}`;
     const currentProjectVersion = config.ios!.buildNumber || "1";
     const marketingVersion = config.version!;
 
-    // 1. Create the widget target
     await addBroadcastExtensionXcodeTarget(config.modResults, {
       appName,
       extensionName: widgetName,
@@ -44,12 +46,10 @@ export const withWidgetIos: ConfigPlugin<Props> = (
         `withWidgetIos: Target '${widgetName}' not found in Xcode project.`
       );
     }
-
     if (!groupUuid) {
       throw new Error(`withWidgetIos: PBXGroup for '${widgetName}' not found.`);
     }
 
-    // 2. Add entitlements file to Xcode project
     const entitlementsFilename = `${widgetName}.entitlements`;
     proj.addFile(entitlementsFilename, groupUuid, {
       target: targetUuid,
@@ -64,14 +64,11 @@ export const withWidgetIos: ConfigPlugin<Props> = (
     );
 
     const targetSwiftFileName = `${widgetName}.swift`;
-
-    // 3. Add source file to Xcode project
     proj.addSourceFile(targetSwiftFileName, { target: targetUuid }, groupUuid);
 
     return config;
   });
 
-  // File system operations - copy actual files to disk
   config = withDangerousMod(config, [
     "ios",
     async (config) => {
@@ -81,33 +78,27 @@ export const withWidgetIos: ConfigPlugin<Props> = (
       );
       const projectPath = config.modRequest.projectRoot;
 
-      // Create extension directory
       await fs.promises.mkdir(extensionRootPath, { recursive: true });
 
-      // 1. Create and copy entitlements file
+      // Create entitlements file
       const entitlementsFilename = `${widgetName}.entitlements`;
       const entitlementsPath = path.join(
         extensionRootPath,
         entitlementsFilename
       );
-
-      // Read the static entitlements template
       const staticEntitlementsPath = path.join(
         __dirname,
         "static",
         "widget.entitlements"
       );
       let entitlementsContent = fs.readFileSync(staticEntitlementsPath, "utf8");
-
-      // Replace the placeholder group identifier
       entitlementsContent = entitlementsContent.replace(
         /group\.expo\.modules\.widgetsync\.example/g,
         appGroupIdentifier
       );
-
       await fs.promises.writeFile(entitlementsPath, entitlementsContent);
 
-      // 2. Copy source files
+      // Handle source files
       const widgetSourceDirPath = path.join(
         projectPath,
         widgetName,
@@ -117,23 +108,19 @@ export const withWidgetIos: ConfigPlugin<Props> = (
 
       if (!fs.existsSync(widgetSourceDirPath)) {
         await fs.promises.mkdir(widgetSourceDirPath, { recursive: true });
-
         const widgetStaticSourceDirPath = path.join(__dirname, "static");
 
-        // Copy widget.swift
         await fs.promises.copyFile(
           path.join(widgetStaticSourceDirPath, "widget.swift"),
           path.join(widgetSourceDirPath, "widget.swift")
         );
 
-        // Copy Assets.xcassets
         await fs.promises.cp(
           path.join(widgetStaticSourceDirPath, "Assets.xcassets"),
           path.join(widgetSourceDirPath, "Assets.xcassets"),
           { recursive: true }
         );
 
-        // Replace app group identifier in widget.swift
         const widgetSourceFilePath = path.join(
           widgetSourceDirPath,
           "widget.swift"
@@ -141,14 +128,12 @@ export const withWidgetIos: ConfigPlugin<Props> = (
         const content = fs.readFileSync(widgetSourceFilePath, "utf8");
         const newContent = content.replace(
           /group\.expo\.modules\.widgetsync\.example/g,
-          `${appGroupIdentifier}`
+          appGroupIdentifier
         );
         fs.writeFileSync(widgetSourceFilePath, newContent);
       }
 
-      // Copy to extension root path with proper naming
       const targetSwiftFileName = `${widgetName}.swift`;
-
       await fs.promises.copyFile(
         path.join(widgetSourceDirPath, "widget.swift"),
         path.join(extensionRootPath, targetSwiftFileName)
@@ -164,10 +149,24 @@ export const withWidgetIos: ConfigPlugin<Props> = (
     },
   ]);
 
-  // Keep these separate - they don't modify Xcode project
   config = withWidgetPlist(config, { widgetName });
-
   config = withWidgetEAS(config, { widgetName });
+
+  // Add app group to main app's entitlements
+  config = withEntitlementsPlist(config, (config) => {
+    if (!config.modResults["com.apple.security.application-groups"]) {
+      config.modResults["com.apple.security.application-groups"] = [];
+    }
+
+    const appGroups = config.modResults[
+      "com.apple.security.application-groups"
+    ] as string[];
+    if (!appGroups.includes(appGroupIdentifier)) {
+      appGroups.push(appGroupIdentifier);
+    }
+
+    return config;
+  });
 
   return config;
 };

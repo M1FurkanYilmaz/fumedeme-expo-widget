@@ -4,43 +4,20 @@ import { withWidgetManifest } from "./withWidgetManifest";
 import { withWidgetProjectBuildGradle } from "./withWidgetProjectBuildGradle";
 import { withWidgetSourceCodes } from "./withWidgetSourceCodes";
 import { withSerializationProjectBuildGradle } from "./withSerializationProjectBuildGradle";
-import { Props } from "..";
+import { WidgetConfig } from "..";
 
-/**
- * @param config
- * @returns
- */
-export const withWidgetAndroid: ConfigPlugin<Props> = (
+export const withWidgetAndroid: ConfigPlugin<WidgetConfig> = (
   config,
   { widgetName, ios: { appGroupIdentifier } }
 ) => {
-  try {
-    config = withWidgetManifest(config, { widgetName });
-  } catch (error) {
-    throw error;
-  }
-  try {
-    config = withWidgetProjectBuildGradle(config);
-  } catch (error) {
-    throw error;
-  }
-  try {
-    config = withWidgetAppBuildGradle(config);
-  } catch (error) {
-    throw error;
-  }
-  try {
-    config = withWidgetSourceCodes(config, {
-      widgetName,
-      appGroupName: appGroupIdentifier,
-    });
-  } catch (error) {
-    throw error;
-  }
-  try {
-    config = withSerializationProjectBuildGradle(config);
-  } catch (error) {
-    throw error;
-  }
+  config = withWidgetManifest(config, { widgetName });
+  config = withWidgetProjectBuildGradle(config);
+  config = withWidgetAppBuildGradle(config);
+  config = withWidgetSourceCodes(config, {
+    widgetName,
+    appGroupName: appGroupIdentifier,
+  });
+  config = withSerializationProjectBuildGradle(config);
+
   return config;
 };

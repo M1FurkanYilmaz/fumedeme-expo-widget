@@ -22,7 +22,9 @@ export const addBroadcastExtensionXcodeTarget = async (
     topLevelFiles,
   }: AddXcodeTargetParams & { topLevelFiles: string[] }
 ) => {
+  // If target already exists, skip everything
   if (proj.findTargetKey(extensionName)) {
+    console.log(`Target ${extensionName} already exists, skipping...`);
     return;
   }
 
@@ -48,31 +50,44 @@ export const addBroadcastExtensionXcodeTarget = async (
   });
 
   addToPbxProjectSection(proj, target);
-
   addTargetDependency(proj, target);
 
   const frameworkFileWidgetKit = proj.addFramework("WidgetKit.framework", {
     target: target.uuid,
     link: false,
   });
+
   const frameworkFileSwiftUI = proj.addFramework("SwiftUI.framework", {
     target: target.uuid,
     link: false,
   });
 
+  const frameworkPaths = [
+    frameworkFileSwiftUI?.path,
+    frameworkFileWidgetKit?.path,
+  ].filter((path): path is string => path !== undefined);
+
+  // Add PBX group first so files have a parent
+  const groupUuid = addPbxGroup(
+    proj,
+    productFile,
+    extensionName,
+    topLevelFiles
+  );
+
+  // Then add all build phases including resources
   addBuildPhases(proj, {
     extensionName,
     groupName,
     productFile,
     targetUuid,
-    frameworkPaths: [frameworkFileSwiftUI.path, frameworkFileWidgetKit.path],
+    frameworkPaths,
+    groupUuid,
   });
-
-  addPbxGroup(proj, productFile, extensionName, topLevelFiles);
 };
 
 export function quoted(str: string) {
-  return util.format(`"%s"`, str);
+  return util.format('"%s"', str);
 }
 
 const addXCConfigurationList = (
@@ -149,7 +164,6 @@ const addXCConfigurationList = (
     `Build configuration list for PBXNativeTarget ${quoted(extensionName)}`
   );
 
-  // update other build properties
   proj.updateBuildProperty(
     "ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES",
     "YES",
@@ -170,7 +184,6 @@ const addProductFile = (
   const fileRefUuid = proj.generateUuid();
   const buildFileUuid = proj.generateUuid();
 
-  // Manually add to PBXFileReference section
   if (!proj.hash.project.objects.PBXFileReference) {
     proj.hash.project.objects.PBXFileReference = {};
   }
@@ -182,10 +195,10 @@ const addProductFile = (
     path: `${extensionName}.appex`,
     sourceTree: "BUILT_PRODUCTS_DIR",
   };
+
   proj.hash.project.objects.PBXFileReference[`${fileRefUuid}_comment`] =
     `${extensionName}.appex`;
 
-  // Manually add to PBXBuildFile section
   if (!proj.hash.project.objects.PBXBuildFile) {
     proj.hash.project.objects.PBXBuildFile = {};
   }
@@ -197,6 +210,7 @@ const addProductFile = (
       ATTRIBUTES: ["RemoveHeadersOnCopy"],
     },
   };
+
   proj.hash.project.objects.PBXBuildFile[`${buildFileUuid}_comment`] =
     `${extensionName}.appex in Embed App Extensions`;
 
@@ -257,7 +271,6 @@ const addToPbxProjectSection = (
 ) => {
   proj.addToPbxProjectSection(target);
 
-  // Add target attributes to project section
   if (
     !proj.pbxProjectSection()[proj.getFirstProject().uuid].attributes
       .TargetAttributes
@@ -286,11 +299,60 @@ const addTargetDependency = (
   if (!proj.hash.project.objects["PBXTargetDependency"]) {
     proj.hash.project.objects["PBXTargetDependency"] = {};
   }
+
   if (!proj.hash.project.objects["PBXContainerItemProxy"]) {
     proj.hash.project.objects["PBXContainerItemProxy"] = {};
   }
 
   proj.addTargetDependency(proj.getFirstTarget().uuid, [target.uuid]);
+};
+
+const addPbxGroup = (
+  proj: IOSConfig.XcodeUtils.NativeTargetSection,
+  productFile: any,
+  extensionName: string,
+  topLevelFiles: string[]
+): string => {
+  const existingGroupUuid = proj.findPBXGroupKey({ name: extensionName });
+
+  if (existingGroupUuid) {
+    console.log(`PBXGroup for ${extensionName} already exists, skipping...`);
+    return existingGroupUuid;
+  }
+
+  const { uuid: pbxGroupUuid } = proj.addPbxGroup(
+    topLevelFiles,
+    extensionName,
+    extensionName
+  );
+
+  const groups = proj.hash.project.objects["PBXGroup"];
+
+  if (pbxGroupUuid) {
+    Object.keys(groups).forEach(function (key) {
+      if (groups[key].name === undefined && groups[key].path === undefined) {
+        proj.addToPbxGroup(pbxGroupUuid, key);
+      } else if (groups[key].name === "Products") {
+        if (!groups[key].children) {
+          groups[key].children = [];
+        }
+
+        const alreadyExists = groups[key].children.some((child: any) => {
+          const childValue = typeof child === "object" ? child.value : child;
+          return childValue === productFile.fileRef;
+        });
+
+        if (!alreadyExists) {
+          groups[key].children.push({
+            value: productFile.fileRef,
+            comment: productFile.basename,
+          });
+        }
+      }
+    });
+  }
+
+  return pbxGroupUuid;
 };
 
 type AddBuildPhaseParams = {
@@ -299,6 +361,7 @@ type AddBuildPhaseParams = {
   targetUuid: string;
   extensionName: string;
   frameworkPaths: string[];
+  groupUuid: string;
 };
 
 const addBuildPhases = (
@@ -308,6 +371,7 @@ const addBuildPhases = (
     targetUuid,
     frameworkPaths,
     extensionName,
+    groupUuid,
   }: AddBuildPhaseParams
 ) => {
   const buildPath = quoted("");
@@ -323,6 +387,55 @@ const addBuildPhases = (
     buildPath
   );
 
+  // Frameworks build phase
+  if (frameworkPaths.length > 0) {
+    proj.addBuildPhase(
+      frameworkPaths,
+      "PBXFrameworksBuildPhase",
+      "Frameworks",
+      targetUuid,
+      extensionName,
+      buildPath
+    );
+  }
+
+  // Resources build phase - manually create to ensure proper parent reference
+  const assetsFileRef = proj.addResourceFile("Assets.xcassets", {}, groupUuid);
+
+  if (assetsFileRef) {
+    const resourcesBuildPhaseUuid = proj.generateUuid();
+
+    if (!proj.hash.project.objects.PBXResourcesBuildPhase) {
+      proj.hash.project.objects.PBXResourcesBuildPhase = {};
+    }
+
+    proj.hash.project.objects.PBXResourcesBuildPhase[resourcesBuildPhaseUuid] =
+      {
+        isa: "PBXResourcesBuildPhase",
+        buildActionMask: 2147483647,
+        files: [
+          {
+            value: assetsFileRef.uuid,
+            comment: "Assets.xcassets in Resources",
+          },
+        ],
+        runOnlyForDeploymentPostprocessing: 0,
+      };
+
+    proj.hash.project.objects.PBXResourcesBuildPhase[
+      `${resourcesBuildPhaseUuid}_comment`
+    ] = "Resources";
+
+    // Add to target's build phases
+    const target = proj.pbxNativeTargetSection()[targetUuid];
+    if (target && target.buildPhases) {
+      target.buildPhases.push({
+        value: resourcesBuildPhaseUuid,
+        comment: "Resources",
+      });
+    }
+  }
+
   // Copy files build phase
   proj.addBuildPhase(
     [productFile.path],
@@ -332,68 +445,4 @@ const addBuildPhases = (
     "app_extension",
     buildPath
   );
-
-  // Frameworks build phase
-  proj.addBuildPhase(
-    frameworkPaths,
-    "PBXFrameworksBuildPhase",
-    "Frameworks",
-    targetUuid,
-    extensionName,
-    buildPath
-  );
-
-  // Resources build phase
-  proj.addBuildPhase(
-    ["Assets.xcassets"],
-    "PBXResourcesBuildPhase",
-    "Resources",
-    targetUuid,
-    extensionName,
-    buildPath
-  );
-};
-
-const addPbxGroup = (
-  proj: IOSConfig.XcodeUtils.NativeTargetSection,
-  productFile: any,
-  extensionName: string,
-  topLevelFiles: string[]
-) => {
-  // Add PBX group
-  const { uuid: pbxGroupUuid } = proj.addPbxGroup(
-    topLevelFiles,
-    extensionName,
-    extensionName
-  );
-
-  // Add PBXGroup to top level group
-  const groups = proj.hash.project.objects["PBXGroup"];
-
-  if (pbxGroupUuid) {
-    Object.keys(groups).forEach(function (key) {
-      if (groups[key].name === undefined && groups[key].path === undefined) {
-        // Add to root group
-        proj.addToPbxGroup(pbxGroupUuid, key);
-      } else if (groups[key].name === "Products") {
-        // Add product file to Products group
-        // Don't use addToPbxGroup - directly add the fileRef
-        if (!groups[key].children) {
-          groups[key].children = [];
-        }
-        // Check if not already added
-        const alreadyExists = groups[key].children.some((child: any) => {
-          const childValue = typeof child === "object" ? child.value : child;
-          return childValue === productFile.fileRef;
-        });
-
-        if (!alreadyExists) {
-          groups[key].children.push({
-            value: productFile.fileRef,
-            comment: productFile.basename,
-          });
-        }
-      }
-    });
-  }
 };
