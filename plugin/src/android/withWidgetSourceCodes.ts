@@ -138,30 +138,7 @@ async function prepareSourceCodes(
 }
 
 function makeSharedCodePrivate(content: string, widgetName: string): string {
-  // Make data classes private with unique names
-  content = content.replace(
-    /@Serializable\s+private data class \w+_Plug\s*\(/g,
-    `@Serializable\nprivate data class ${widgetName}_Plug(`
-  );
-
-  content = content.replace(
-    /@Serializable\s+private data class \w+_Device\s*\(/g,
-    `@Serializable\nprivate data class ${widgetName}_Device(`
-  );
-
-  // Update all references to Plug -> widgetName_Plug
-  content = content.replace(
-    /(\s|:|<|,|\()\w+_Plug(\s|>|,|\)|\.)/g,
-    `$1${widgetName}_Plug$2`
-  );
-
-  // Update all references to Device -> widgetName_Device
-  content = content.replace(
-    /(\s|:|<|,|\()\w+_Device(\s|>|,|\)|\.)/g,
-    `$1${widgetName}_Device$2`
-  );
-
-  // Make getItem function private (handle both with and without prefix)
+  // Make getItem function private
   content = content.replace(
     /^private fun \w+_getItem\s*\(/gm,
     `private fun ${widgetName}_getItem(`
@@ -169,30 +146,6 @@ function makeSharedCodePrivate(content: string, widgetName: string): string {
 
   // Update all calls to getItem
   content = content.replace(/\b\w+_getItem\(/g, `${widgetName}_getItem(`);
-
-  // Make DeviceDataManager class private with unique name
-  content = content.replace(
-    /private class \w+_DeviceDataManager\s+private constructor\(\)/g,
-    `private class ${widgetName}_DeviceDataManager private constructor()`
-  );
-
-  // Update companion object reference
-  content = content.replace(
-    /companion object\s*\{\s*val shared = \w+_DeviceDataManager\(\)/g,
-    `companion object {\n        val shared = ${widgetName}_DeviceDataManager()`
-  );
-
-  // Update all references to DeviceDataManager.shared
-  content = content.replace(
-    /\b\w+_DeviceDataManager\.shared/g,
-    `${widgetName}_DeviceDataManager.shared`
-  );
-
-  // Update DeviceDataManager type references
-  content = content.replace(
-    /(\s|:|<|,|\()\w+_DeviceDataManager(\s|>|,|\)|\.)/g,
-    `$1${widgetName}_DeviceDataManager$2`
-  );
 
   return content;
 }
