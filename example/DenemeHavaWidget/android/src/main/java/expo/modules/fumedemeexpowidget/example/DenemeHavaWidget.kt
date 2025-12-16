@@ -12,75 +12,169 @@ import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
+import androidx.glance.appwidget.action.actionRunCallback
+import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.background
 import androidx.glance.layout.*
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.text.FontWeight
 import androidx.glance.unit.ColorProvider
+import androidx.glance.action.ActionParameters
+import androidx.glance.action.clickable
+import androidx.glance.currentState
+import androidx.glance.state.GlanceStateDefinition
+import androidx.glance.state.PreferencesGlanceStateDefinition
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.stringPreferencesKey
 import android.util.Log
+import androidx.glance.appwidget.GlanceAppWidgetManager
+import androidx.glance.appwidget.action.ActionCallback
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
+
+// Define state keys
+object DenemeHavaWidgetStateKeys {
+    val DATA_KEY = stringPreferencesKey("widget_data")
+    val LAST_UPDATE = stringPreferencesKey("last_update")
+}
 
 class DenemeHavaWidget_Widget : GlanceAppWidget() {
     
+    // Use PreferencesGlanceStateDefinition for state management
+    override val stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
+    
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val data = DenemeHavaWidget_getItem(context, "savedData", "group.expo.modules.havadeneme.example") ?: ""
-        
         provideContent {
-         DenemeHavaWidgetContent(data)
+            DenemeHavaWidgetContent(context)
         }
     }
 }
 
 @Composable
-fun DenemeHavaWidgetContent(data: String) {
-           Column(
-            modifier = GlanceModifier
-                .fillMaxSize()
-                .padding(16.dp)
-                .background(ColorProvider(Color.White))
-                .cornerRadius(16.dp),
-            verticalAlignment = Alignment.Vertical.CenterVertically,
-            horizontalAlignment = Alignment.Horizontal.CenterHorizontally
-        ) {
-            Text(
-                text = "Hello World",
-                style = TextStyle(
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = ColorProvider(Color(0xFF2196F3))
-                )
+fun DenemeHavaWidgetContent(context: Context) {
+    // Access current state
+    val prefs = currentState<Preferences>()
+    val data = prefs[DenemeHavaWidgetStateKeys.DATA_KEY] ?: "No data yet"
+    val lastUpdate = prefs[DenemeHavaWidgetStateKeys.LAST_UPDATE] ?: ""
+    
+    Log.d("DenemeHavaWidget", "Composing widget with data: $data")
+    
+    Column(
+        modifier = GlanceModifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .background(ColorProvider(Color.White))
+            .cornerRadius(16.dp),
+        verticalAlignment = Alignment.Vertical.CenterVertically,
+        horizontalAlignment = Alignment.Horizontal.CenterHorizontally
+    ) {
+        Text(
+            text = "Hello World",
+            style = TextStyle(
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = ColorProvider(Color(0xFF2196F3))
             )
-            
-            Spacer(modifier = GlanceModifier.height(16.dp))
-            
-            Text(
-                text = "Data received from app:",
-                style = TextStyle(
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = ColorProvider(Color(0xFF666666))
-                )
+        )
+        
+        Spacer(modifier = GlanceModifier.height(16.dp))
+        
+        Text(
+            text = "Data received from app:",
+            style = TextStyle(
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                color = ColorProvider(Color(0xFF666666))
             )
-            
+        )
+        
+        Spacer(modifier = GlanceModifier.height(8.dp))
+        
+        val displayColor = if (data != "No data yet") Color(0xFF4CAF50) else Color(0xFF999999)
+        
+        Text(
+            text = data,
+            style = TextStyle(
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Normal,
+                color = ColorProvider(displayColor)
+            )
+        )
+        
+        if (lastUpdate.isNotEmpty()) {
             Spacer(modifier = GlanceModifier.height(8.dp))
-            
-            val displayText = if (data.isNotEmpty()) data else "No data yet"
-            val displayColor = if (data.isNotEmpty()) Color(0xFF4CAF50) else Color(0xFF999999)
-            
             Text(
-                text = displayText,
+                text = "Updated: $lastUpdate",
                 style = TextStyle(
-                    fontSize = 14.sp,
+                    fontSize = 10.sp,
                     fontWeight = FontWeight.Normal,
-                    color = ColorProvider(displayColor)
+                    color = ColorProvider(Color(0xFFAAAAAA))
                 )
             )
         }
+        
+        // Optional: Add a refresh button
+        Spacer(modifier = GlanceModifier.height(16.dp))
+        Row(
+            modifier = GlanceModifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            horizontalAlignment = Alignment.Horizontal.CenterHorizontally
+        ) {
+            Box(
+                modifier = GlanceModifier
+                    .background(ColorProvider(Color(0xFF2196F3)))
+                    .cornerRadius(8.dp)
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .clickable(actionRunCallback<RefreshDenemeHavaWidgetAction>()),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Refresh",
+                    style = TextStyle(
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = ColorProvider(Color.White)
+                    )
+                )
+            }
+        }
+    }
+}
+
+// Action callback for refresh button
+class RefreshDenemeHavaWidgetAction : ActionCallback {
+    override suspend fun onAction(
+        context: Context,
+        glanceId: GlanceId,
+        parameters: ActionParameters
+    ) {
+        Log.d("DenemeHavaWidget", "RefreshDenemeHavaWidgetAction triggered")
+        
+        // Load data from SharedPreferences
+        val data = DenemeHavaWidget_getItem(context, "savedData", "group.expo.modules.havadeneme.example") ?: "No data"
+        val timestamp = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault())
+            .format(java.util.Date())
+        
+        // Update widget state
+        updateAppWidgetState(context, glanceId) { prefs ->
+            prefs[DenemeHavaWidgetStateKeys.DATA_KEY] = data
+            prefs[DenemeHavaWidgetStateKeys.LAST_UPDATE] = timestamp
+        }
+        
+        // Trigger widget update
+        DenemeHavaWidget_Widget().update(context, glanceId)
+        
+        Log.d("DenemeHavaWidget", "Widget state updated with: $data")
+    }
 }
 
 class DenemeHavaWidget : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = DenemeHavaWidget_Widget()
-
+    
+    private val coroutineScope = MainScope()
+    
     override fun onUpdate(
         context: Context,
         appWidgetManager: android.appwidget.AppWidgetManager,
@@ -89,6 +183,39 @@ class DenemeHavaWidget : GlanceAppWidgetReceiver() {
         Log.d("DenemeHavaWidget", "=== onUpdate called for ${appWidgetIds.size} widgets ===")
         try {
             super.onUpdate(context, appWidgetManager, appWidgetIds)
+            
+            // Launch coroutine to update widgets
+            coroutineScope.launch {
+                try {
+                    val manager = GlanceAppWidgetManager(context)
+                    
+                    appWidgetIds.forEach { appWidgetId ->
+                        Log.d("DenemeHavaWidget", "Updating widget ID: $appWidgetId")
+                        val glanceId = manager.getGlanceIdBy(appWidgetId)
+                        
+                        // Load fresh data from SharedPreferences
+                        val data = DenemeHavaWidget_getItem(context, "savedData", "group.expo.modules.havadeneme.example") ?: "No data"
+                        val timestamp = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault())
+                            .format(java.util.Date())
+                        
+                        Log.d("DenemeHavaWidget", "Loaded data from SharedPreferences: $data")
+                        
+                        // Update widget state with fresh data
+                        updateAppWidgetState(context, glanceId) { prefs ->
+                            prefs[DenemeHavaWidgetStateKeys.DATA_KEY] = data
+                            prefs[DenemeHavaWidgetStateKeys.LAST_UPDATE] = timestamp
+                        }
+                        
+                        // Trigger widget update
+                        glanceAppWidget.update(context, glanceId)
+                        
+                        Log.d("DenemeHavaWidget", "Widget state and UI updated successfully")
+                    }
+                } catch (e: Exception) {
+                    Log.e("DenemeHavaWidget", "Error updating widget in coroutine", e)
+                }
+            }
+            
             Log.d("DenemeHavaWidget", "=== onUpdate completed successfully ===")
         } catch (e: Exception) {
             Log.e("DenemeHavaWidget", "Error in onUpdate", e)

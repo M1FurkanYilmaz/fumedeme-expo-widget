@@ -3,7 +3,7 @@ import { StyleSheet, Pressable, Text, View } from "react-native";
 import { getItem, reloadAll, setItem } from "fumedeme-expo-widget";
 import { useEffect, useState } from "react";
 
-const GROUP_NAME = "group.expo.modules.havadeneme.example";
+const GROUP_NAME = "group.expo.modules.istasyondeneme.example";
 
 const getSharedData = getItem(GROUP_NAME);
 const setSharedData = setItem(GROUP_NAME);
