@@ -61,17 +61,10 @@ async function copyResourceFiles(
     // Rename xml info file with lowercase name
     const xmlDir = path.join(source, "xml");
     if (fs.existsSync(xmlDir)) {
-      const oldXmlPath = path.join(xmlDir, "device_status_widget_info.xml");
+      const oldXmlPath = path.join(xmlDir, "widget_info.xml");
       const newXmlPath = path.join(xmlDir, `${lowercaseWidgetName}_info.xml`);
       if (fs.existsSync(oldXmlPath)) {
         await fs.promises.rename(oldXmlPath, newXmlPath);
-        // Update content inside xml info file
-        let xmlContent = fs.readFileSync(newXmlPath, "utf8");
-        xmlContent = xmlContent.replace(
-          /@layout\/device_status_widget/g,
-          `@layout/${lowercaseWidgetName}`
-        );
-        fs.writeFileSync(newXmlPath, xmlContent);
       }
     }
   }
@@ -147,61 +140,57 @@ async function prepareSourceCodes(
 function makeSharedCodePrivate(content: string, widgetName: string): string {
   // Make data classes private with unique names
   content = content.replace(
-    /@Serializable\s+data class Plug\s*\(/g,
+    /@Serializable\s+private data class \w+_Plug\s*\(/g,
     `@Serializable\nprivate data class ${widgetName}_Plug(`
   );
 
   content = content.replace(
-    /@Serializable\s+data class Device\s*\(/g,
+    /@Serializable\s+private data class \w+_Device\s*\(/g,
     `@Serializable\nprivate data class ${widgetName}_Device(`
   );
 
   // Update all references to Plug -> widgetName_Plug
   content = content.replace(
-    /(\s|:|<|,|\()Plug(\s|>|,|\)|\.)/g,
+    /(\s|:|<|,|\()\w+_Plug(\s|>|,|\)|\.)/g,
     `$1${widgetName}_Plug$2`
   );
 
   // Update all references to Device -> widgetName_Device
   content = content.replace(
-    /(\s|:|<|,|\()Device(\s|>|,|\)|\.)/g,
+    /(\s|:|<|,|\()\w+_Device(\s|>|,|\)|\.)/g,
     `$1${widgetName}_Device$2`
   );
 
-  // Make getItem function private
+  // Make getItem function private (handle both with and without prefix)
   content = content.replace(
-    /^internal fun getItem\s*\(/gm,
-    `private fun ${widgetName}_getItem(`
-  );
-
-  content = content.replace(
-    /^fun getItem\s*\(/gm,
+    /^private fun \w+_getItem\s*\(/gm,
     `private fun ${widgetName}_getItem(`
   );
 
   // Update all calls to getItem
-  content = content.replace(/\bgetItem\(/g, `${widgetName}_getItem(`);
+  content = content.replace(/\b\w+_getItem\(/g, `${widgetName}_getItem(`);
 
   // Make DeviceDataManager class private with unique name
   content = content.replace(
-    /class DeviceDataManager\s+private constructor\(\)/g,
+    /private class \w+_DeviceDataManager\s+private constructor\(\)/g,
     `private class ${widgetName}_DeviceDataManager private constructor()`
   );
 
   // Update companion object reference
   content = content.replace(
-    /companion object\s*\{\s*val shared = DeviceDataManager\(\)/g,
+    /companion object\s*\{\s*val shared = \w+_DeviceDataManager\(\)/g,
     `companion object {\n        val shared = ${widgetName}_DeviceDataManager()`
   );
 
-  // Update all references to DeviceDataManager
+  // Update all references to DeviceDataManager.shared
   content = content.replace(
-    /DeviceDataManager\.shared/g,
+    /\b\w+_DeviceDataManager\.shared/g,
     `${widgetName}_DeviceDataManager.shared`
   );
 
+  // Update DeviceDataManager type references
   content = content.replace(
-    /(\s|:|<|,|\()DeviceDataManager(\s|>|,|\)|\.)/g,
+    /(\s|:|<|,|\()\w+_DeviceDataManager(\s|>|,|\)|\.)/g,
     `$1${widgetName}_DeviceDataManager$2`
   );
 
