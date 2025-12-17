@@ -19,7 +19,7 @@ class WidgetDataManager {
     static let shared = WidgetDataManager()
     
     func getData() -> String {
-        let userDefaults = UserDefaults(suiteName: "group.expo.modules.widgetsync.example")
+        let userDefaults = UserDefaults(suiteName: "group.expo.modules.examplestation.example")
         return userDefaults?.string(forKey: "savedData") ?? "No data yet"
     }
 }
@@ -108,7 +108,7 @@ struct WidgetProvider: TimelineProvider {
 @main
 struct widget: Widget {
     let kind = "widget"
-    private let widgetName = "{{WIDGET_NAME}}"
+    private let widgetName = "ExampleStationWidget"
     
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: WidgetProvider()) { entry in

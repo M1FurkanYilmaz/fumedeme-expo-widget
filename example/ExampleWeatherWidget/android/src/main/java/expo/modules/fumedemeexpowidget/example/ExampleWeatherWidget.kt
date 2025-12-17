@@ -1,5 +1,5 @@
 // widget.kt
-package {{PACKAGE_NAME}}
+package expo.modules.fumedemeexpowidget.example
 
 import android.content.Context
 import androidx.compose.runtime.Composable
@@ -34,31 +34,31 @@ import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 
 // Define state keys
-object {{WIDGET_NAME}}StateKeys {
+object ExampleWeatherWidgetStateKeys {
     val DATA_KEY = stringPreferencesKey("widget_data")
     val LAST_UPDATE = stringPreferencesKey("last_update")
 }
 
-class {{WIDGET_NAME}}_Widget : GlanceAppWidget() {
+class ExampleWeatherWidget_Widget : GlanceAppWidget() {
     
     // Use PreferencesGlanceStateDefinition for state management
     override val stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
     
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         provideContent {
-            {{WIDGET_NAME}}Content(context)
+            ExampleWeatherWidgetContent(context)
         }
     }
 }
 
 @Composable
-fun {{WIDGET_NAME}}Content(context: Context) {
+fun ExampleWeatherWidgetContent(context: Context) {
     // Access current state
     val prefs = currentState<Preferences>()
-    val data = prefs[{{WIDGET_NAME}}StateKeys.DATA_KEY] ?: "No data yet"
-    val lastUpdate = prefs[{{WIDGET_NAME}}StateKeys.LAST_UPDATE] ?: ""
+    val data = prefs[ExampleWeatherWidgetStateKeys.DATA_KEY] ?: "No data yet"
+    val lastUpdate = prefs[ExampleWeatherWidgetStateKeys.LAST_UPDATE] ?: ""
     
-    Log.d("{{WIDGET_NAME}}", "Composing widget with data: $data")
+    Log.d("ExampleWeatherWidget", "Composing widget with data: $data")
     
     Column(
         modifier = GlanceModifier
@@ -70,7 +70,7 @@ fun {{WIDGET_NAME}}Content(context: Context) {
         horizontalAlignment = Alignment.Horizontal.CenterHorizontally
     ) {
         Text(
-            text = "{{WIDGET_NAME}}",
+            text = "ExampleWeatherWidget",
             style = TextStyle(
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
@@ -127,7 +127,7 @@ fun {{WIDGET_NAME}}Content(context: Context) {
                     .background(ColorProvider(Color(0xFF2196F3)))
                     .cornerRadius(8.dp)
                     .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .clickable(actionRunCallback<Refresh{{WIDGET_NAME}}Action>()),
+                    .clickable(actionRunCallback<RefreshExampleWeatherWidgetAction>()),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -144,34 +144,34 @@ fun {{WIDGET_NAME}}Content(context: Context) {
 }
 
 // Action callback for refresh button
-class Refresh{{WIDGET_NAME}}Action : ActionCallback {
+class RefreshExampleWeatherWidgetAction : ActionCallback {
     override suspend fun onAction(
         context: Context,
         glanceId: GlanceId,
         parameters: ActionParameters
     ) {
-        Log.d("{{WIDGET_NAME}}", "Refresh{{WIDGET_NAME}}Action triggered")
+        Log.d("ExampleWeatherWidget", "RefreshExampleWeatherWidgetAction triggered")
         
         // Load data from SharedPreferences
-        val data = {{WIDGET_NAME}}_getItem(context, "savedData", "{{GROUP_IDENTIFIER}}") ?: "No data"
+        val data = ExampleWeatherWidget_getItem(context, "savedData", "group.expo.modules.exampleweather.example") ?: "No data"
         val timestamp = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault())
             .format(java.util.Date())
         
         // Update widget state
         updateAppWidgetState(context, glanceId) { prefs ->
-            prefs[{{WIDGET_NAME}}StateKeys.DATA_KEY] = data
-            prefs[{{WIDGET_NAME}}StateKeys.LAST_UPDATE] = timestamp
+            prefs[ExampleWeatherWidgetStateKeys.DATA_KEY] = data
+            prefs[ExampleWeatherWidgetStateKeys.LAST_UPDATE] = timestamp
         }
         
         // Trigger widget update
-        {{WIDGET_NAME}}_Widget().update(context, glanceId)
+        ExampleWeatherWidget_Widget().update(context, glanceId)
         
-        Log.d("{{WIDGET_NAME}}", "Widget state updated with: $data")
+        Log.d("ExampleWeatherWidget", "Widget state updated with: $data")
     }
 }
 
-class {{WIDGET_NAME}} : GlanceAppWidgetReceiver() {
-    override val glanceAppWidget: GlanceAppWidget = {{WIDGET_NAME}}_Widget()
+class ExampleWeatherWidget : GlanceAppWidgetReceiver() {
+    override val glanceAppWidget: GlanceAppWidget = ExampleWeatherWidget_Widget()
     
     private val coroutineScope = MainScope()
     
@@ -180,7 +180,7 @@ class {{WIDGET_NAME}} : GlanceAppWidgetReceiver() {
         appWidgetManager: android.appwidget.AppWidgetManager,
         appWidgetIds: IntArray
     ) {
-        Log.d("{{WIDGET_NAME}}", "=== onUpdate called for ${appWidgetIds.size} widgets ===")
+        Log.d("ExampleWeatherWidget", "=== onUpdate called for ${appWidgetIds.size} widgets ===")
         try {
             super.onUpdate(context, appWidgetManager, appWidgetIds)
             
@@ -190,52 +190,52 @@ class {{WIDGET_NAME}} : GlanceAppWidgetReceiver() {
                     val manager = GlanceAppWidgetManager(context)
                     
                     appWidgetIds.forEach { appWidgetId ->
-                        Log.d("{{WIDGET_NAME}}", "Updating widget ID: $appWidgetId")
+                        Log.d("ExampleWeatherWidget", "Updating widget ID: $appWidgetId")
                         val glanceId = manager.getGlanceIdBy(appWidgetId)
                         
                         // Load fresh data from SharedPreferences
-                        val data = {{WIDGET_NAME}}_getItem(context, "savedData", "{{GROUP_IDENTIFIER}}") ?: "No data"
+                        val data = ExampleWeatherWidget_getItem(context, "savedData", "group.expo.modules.exampleweather.example") ?: "No data"
                         val timestamp = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault())
                             .format(java.util.Date())
                         
-                        Log.d("{{WIDGET_NAME}}", "Loaded data from SharedPreferences: $data")
+                        Log.d("ExampleWeatherWidget", "Loaded data from SharedPreferences: $data")
                         
                         // Update widget state with fresh data
                         updateAppWidgetState(context, glanceId) { prefs ->
-                            prefs[{{WIDGET_NAME}}StateKeys.DATA_KEY] = data
-                            prefs[{{WIDGET_NAME}}StateKeys.LAST_UPDATE] = timestamp
+                            prefs[ExampleWeatherWidgetStateKeys.DATA_KEY] = data
+                            prefs[ExampleWeatherWidgetStateKeys.LAST_UPDATE] = timestamp
                         }
                         
                         // Trigger widget update
                         glanceAppWidget.update(context, glanceId)
                         
-                        Log.d("{{WIDGET_NAME}}", "Widget state and UI updated successfully")
+                        Log.d("ExampleWeatherWidget", "Widget state and UI updated successfully")
                     }
                 } catch (e: Exception) {
-                    Log.e("{{WIDGET_NAME}}", "Error updating widget in coroutine", e)
+                    Log.e("ExampleWeatherWidget", "Error updating widget in coroutine", e)
                 }
             }
             
-            Log.d("{{WIDGET_NAME}}", "=== onUpdate completed successfully ===")
+            Log.d("ExampleWeatherWidget", "=== onUpdate completed successfully ===")
         } catch (e: Exception) {
-            Log.e("{{WIDGET_NAME}}", "Error in onUpdate", e)
+            Log.e("ExampleWeatherWidget", "Error in onUpdate", e)
         }
     }
 }
 
-private fun {{WIDGET_NAME}}_getItem(
+private fun ExampleWeatherWidget_getItem(
     context: Context,
     key: String,
     preferenceName: String
 ): String? {
     try {
-        Log.d("{{WIDGET_NAME}}", "getItem - preference: $preferenceName, key: $key")
+        Log.d("ExampleWeatherWidget", "getItem - preference: $preferenceName, key: $key")
         val preferences = context.getSharedPreferences(preferenceName, Context.MODE_PRIVATE)
         val value = preferences.getString(key, null)
-        Log.d("{{WIDGET_NAME}}", "getItem - value: $value")
+        Log.d("ExampleWeatherWidget", "getItem - value: $value")
         return value
     } catch (e: Exception) {
-        Log.e("{{WIDGET_NAME}}", "Error in getItem", e)
+        Log.e("ExampleWeatherWidget", "Error in getItem", e)
         return null
     }
 }

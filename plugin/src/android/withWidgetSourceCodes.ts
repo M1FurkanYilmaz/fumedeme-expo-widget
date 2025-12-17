@@ -58,13 +58,18 @@ async function copyResourceFiles(
       }
     }
 
-    // Rename xml info file with lowercase name
+    // Rename and update xml info file with widget name
     const xmlDir = path.join(source, "xml");
     if (fs.existsSync(xmlDir)) {
       const oldXmlPath = path.join(xmlDir, "widget_info.xml");
       const newXmlPath = path.join(xmlDir, `${lowercaseWidgetName}_info.xml`);
       if (fs.existsSync(oldXmlPath)) {
         await fs.promises.rename(oldXmlPath, newXmlPath);
+
+        // Replace {{WIDGET_NAME}} placeholder in the XML file
+        let xmlContent = fs.readFileSync(newXmlPath, "utf8");
+        xmlContent = xmlContent.replace(/\{\{WIDGET_NAME\}\}/g, widgetName);
+        fs.writeFileSync(newXmlPath, xmlContent);
       }
     }
   }

@@ -50,17 +50,17 @@
         "./../app.plugin.js",
         [
           {
-            "widgetName": "DenemeIstasyonWidget",
+            "widgetName": "ExampleStationWidget",
             "ios": {
               "devTeamId": "YOUR_TEAM_ID",
-              "appGroupIdentifier": "group.expo.modules.istasyondeneme.example"
+              "appGroupIdentifier": "group.expo.modules.examplestation.example"
             }
           },
           {
-            "widgetName": "DenemeHavaWidget",
+            "widgetName": "ExampleWeatherWidget",
             "ios": {
               "devTeamId": "YOUR_TEAM_ID",
-              "appGroupIdentifier": "group.expo.modules.havadeneme.example"
+              "appGroupIdentifier": "group.expo.modules.exampleweather.example"
             }
           }
         ]

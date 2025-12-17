@@ -23,7 +23,8 @@ export const withWidgetIos: ConfigPlugin<WidgetConfig> = (
 
   config = withXcodeProject(config, async (config) => {
     const appName = config.modRequest.projectName!;
-    const extensionBundleIdentifier = `${config.ios!.bundleIdentifier!}.${widgetName.toLowerCase()}`;
+    const extensionBundleIdentifier = `${config.ios!
+      .bundleIdentifier!}.${widgetName.toLowerCase()}`;
     const currentProjectVersion = config.ios!.buildNumber || "1";
     const marketingVersion = config.version!;
 
@@ -125,12 +126,13 @@ export const withWidgetIos: ConfigPlugin<WidgetConfig> = (
           widgetSourceDirPath,
           "widget.swift"
         );
-        const content = fs.readFileSync(widgetSourceFilePath, "utf8");
-        const newContent = content.replace(
+        let content = fs.readFileSync(widgetSourceFilePath, "utf8");
+        content = content.replace(
           /group\.expo\.modules\.widgetsync\.example/g,
           appGroupIdentifier
         );
-        fs.writeFileSync(widgetSourceFilePath, newContent);
+        content = content.replace(/\{\{WIDGET_NAME\}\}/g, widgetName);
+        fs.writeFileSync(widgetSourceFilePath, content);
       }
 
       const targetSwiftFileName = `${widgetName}.swift`;
