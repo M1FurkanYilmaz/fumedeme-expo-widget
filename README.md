@@ -1,6 +1,40 @@
 # fumedeme-expo-widget
 
-A powerful Expo config plugin that enables native Android and iOS widgets with seamless data synchronization between your React Native app and widgets.
+<p align="center">
+  <strong>Native iOS & Android widgets for Expo applications</strong>
+</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/fumedeme-expo-widget"><img src="https://img.shields.io/npm/v/fumedeme-expo-widget.svg" /></a>
+  <img src="https://img.shields.io/npm/dm/fumedeme-expo-widget.svg" />
+  <img src="https://img.shields.io/badge/platform-iOS%20%7C%20Android-blue" />
+  <img src="https://img.shields.io/badge/expo%20modules-supported-green" />
+  <img src="https://img.shields.io/github/stars/M1FurkanYilmaz/fumedeme-expo-widget?style=social" />
+</p>
+
+<p align="center">
+  <img src="./assets/ios.png" width="200" />
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="./assets/android.png" width="200" />
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="./assets/exampleApp.png" width="200" />
+</p>
+
+---
+
+## Overview
+
+A config plugin that enables native home screen widgets in Expo projects
+
+**Features:**
+
+- Native widget support for iOS and Android platforms
+- Multiple widget configurations per project
+- Bidirectional data synchronization between app and widgets
+- Android Glance API integration
+- Persistent widget customization across builds
+
+---
 
 ## Installation
 
@@ -8,11 +42,9 @@ A powerful Expo config plugin that enables native Android and iOS widgets with s
 npm install fumedeme-expo-widget
 ```
 
-## Usage
+## Configuration
 
-### 1. Configure the Plugin
-
-Add the plugin to your `app.json`:
+### Single Widget
 
 ```json
 {
@@ -21,10 +53,10 @@ Add the plugin to your `app.json`:
       [
         "fumedeme-expo-widget",
         {
-          "widgetName": "MyWidget",
+          "widgetName": "ExampleStationWidget",
           "ios": {
             "devTeamId": "YOUR_TEAM_ID",
-            "appGroupIdentifier": "group.com.yourcompany.yourapp"
+            "appGroupIdentifier": "group.expo.modules.examplestation.example"
           }
         }
       ]
@@ -35,159 +67,156 @@ Add the plugin to your `app.json`:
 
 **Configuration Options:**
 
-- `widgetName`: Name of your widget class (e.g., "MyWidget", "StatusWidget")
-- `ios.devTeamId`: Your Apple Developer Team ID
-- `ios.appGroupIdentifier`: App Group identifier for iOS (must start with "group.")
+- `widgetName` — Unique widget class name
+- `ios.devTeamId` — Apple Developer Team ID
+- `ios.appGroupIdentifier` — Shared App Group identifier (must begin with `group.expo.modules`)
 
-Make sure the Group Identifier is same as in your ios entitlements:
+### Multiple Widgets
 
 ```json
 {
   "expo": {
-    "ios": {
-      "entitlements": {
-        "com.apple.security.application-groups": [
-          "group.com.yourcompany.yourapp"
+    "plugins": [
+      [
+        "fumedeme-expo-widget",
+        [
+          {
+            "widgetName": "ExampleStationWidget",
+            "ios": {
+              "devTeamId": "YOUR_TEAM_ID",
+              "appGroupIdentifier": "group.expo.modules.examplestation.example"
+            }
+          },
+          {
+            "widgetName": "ExampleWeatherWidget",
+            "ios": {
+              "devTeamId": "YOUR_TEAM_ID",
+              "appGroupIdentifier": "group.expo.modules.exampleweather.example"
+            }
+          }
         ]
-      }
-    }
+      ]
+    ]
   }
 }
 ```
 
-### 2. Prebuild Your App
+After configuration, run:
 
 ```bash
 npx expo prebuild
 ```
 
-This generates native widget files in your project that you can customize.
+## Usage
 
-### 3. Use in Your React Native App
+### Basic Example
+
+```javascript
+import { setItem, reloadAll } from "fumedeme-expo-widget";
+
+const GROUP_ID = "group.expo.modules.examplestation.example";
+
+// Write data to shared storage
+await setItem("userScore", "1337", GROUP_ID);
+
+// Trigger widget refresh
+await reloadAll();
+```
+
+### Data Synchronization
 
 ```javascript
 import { getItem, setItem, reloadAll } from "fumedeme-expo-widget";
 
-// Send data to widget
-await setItem("savedData", "Your data here", "group.com.yourcompany.yourapp");
+const GROUP_ID = "group.expo.modules.examplestation.example";
 
-// Reload all widgets to show updated data
-await reloadAll();
+// Update widget data
+const updateWidget = async (temp, condition) => {
+  await setItem("temperature", temp, GROUP_ID);
+  await setItem("condition", condition, GROUP_ID);
+  await reloadAll();
+};
 
-// Read data from shared storage
-const data = await getItem("savedData", "group.com.yourcompany.yourapp");
+// Read current data
+const currentTemp = await getItem("temperature", GROUP_ID);
 ```
 
-**Key Functions:**
+#### Check Example Project for reference.
 
-- `setItem(key, value, groupIdentifier)`: Save data that widgets can access
-- `getItem(key, groupIdentifier)`: Read data from shared storage
-- `reloadAll()`: Force all widgets to refresh and display updated data
+## Architecture
 
-## Development Guide
+### Widget File Management
 
-Want to contribute or customize the plugin? Here's how it works:
+**Initial Prebuild:**
+
+- Creates `/{widgetName}` folder in project root
+- Copies template files (Swift for iOS, Kotlin for Android)
+- Replaces configuration placeholders
+- Files become editable and customizable
+
+**Subsequent Prebuilds:**
+
+- Preserves existing widget customizations
+- Updates only configuration values (package names, bundle IDs)
+- Copies modified files to native projects
+
+## API Reference
+
+| Function                       | Purpose                       | Example                                         |
+| ------------------------------ | ----------------------------- | ----------------------------------------------- |
+| `setItem(key, value, groupId)` | Save data to shared storage   | `await setItem("score", "100", groupId)`        |
+| `getItem(key, groupId)`        | Read data from shared storage | `const score = await getItem("score", groupId)` |
+| `reloadAll()`                  | Force all widgets to refresh  | `await reloadAll()`                             |
+
+---
+
+## Development
 
 ### Project Structure
 
 ```
+
 fumedeme-expo-widget/
-├── src/                          # Native module code (TypeScript/Swift/Kotlin)
+├── src/ # Native module (JS ↔ Native bridge)
 ├── plugin/
-│   ├── src/                      # Config plugin source code
-│   │   ├── android/static/       # Android widget templates
-│   │   └── ios/static/           # iOS widget templates
-│   └── build/                    # Built plugin files (generated)
+│ ├── src/
+│ │ ├── android/static/ # Android widget templates
+│ │ ├── ios/static/ # iOS widget templates
+│ │ └── \*.ts # Config plugin logic
+│ └── build/ # Compiled plugin
+
 ```
 
-### Three Development Areas
-
-#### 1. **Native Module** (`/src`)
-
-The React Native bridge that enables communication between JS and native code.
-
-- Edit TypeScript, Swift, or Kotlin files here
-- Handles data synchronization between app and widgets
-
-#### 2. **Config Plugins** (`/plugin/src`)
-
-Automates native project configuration during prebuild.
-
-- `withWidgetAndroid.ts` - Android widget setup
-- `withWidgetIOS.ts` - iOS widget setup
-- `withWidgetSourceCodes.ts` - Copies and configures widget files
-
-#### 3. **Widget Templates** (`/plugin/src/android/static` & `/plugin/src/ios/static`)
-
-The actual widget implementation files with placeholders.
-
-- `widget.kt` - Android widget template (uses `{{WIDGET_NAME}}`, `{{PACKAGE_NAME}}`, etc.)
-- `Widget.swift` - iOS widget template
-- Resource files (layouts, assets, etc.)
-
-### Building the Plugin
-
-Run this command to build everything:
+### Build Process
 
 ```bash
 npm run build
 ```
 
-**What it does:**
+This command:
 
-1. **Compiles TypeScript** (`tsc -b plugin`) - Builds config plugin code into `/plugin/build`
-2. **Builds Native Module** (`expo-module build`) - Compiles the native module
-3. **Copies Static Files** (`bash plugin/src/scripts/copy.sh`) - Copies widget templates to `/plugin/build/static`
+1. Compiles TypeScript config plugin code
+2. Builds native module components
+3. Copies widget templates to build directory
 
-The `copy.sh` script ensures widget templates are available in the built plugin:
+---
 
-```bash
-# Copies iOS templates
-mkdir -p plugin/build/ios/static
-cp -R plugin/src/ios/static/* plugin/build/ios/static/
+## Implementation Notes
 
-# Copies Android templates
-mkdir -p plugin/build/android/static
-cp -R plugin/src/android/static/* plugin/build/android/static/
-```
+- **App Groups (iOS):** Required for data sharing between app and widget. Use unique identifiers starting with `group.expo.modules`
+- **Widget Updates:** Call `reloadAll()` after data changes to trigger immediate widget refresh
+- **Widget Sizing:** Design for small, medium, and large widget variants on both platforms
+- **Testing:** Physical devices recommended for accurate widget behavior testing
 
-### Testing Your Changes
-
-1. Make changes to source files
-2. Run `npm run build`
-3. Test in an example app:
-   ```bash
-   cd example
-   npx expo prebuild --clean
-   npx expo run:android  # or run:ios
-   ```
-
-## Widget File Management
-
-The plugin intelligently manages widget files based on whether they already exist in your project:
-
-**First Prebuild** (no widget folder exists):
-
-- Creates a folder named after your `widgetName` in project root
-- Copies template widget files with placeholders
-- Replaces placeholders with your configuration
-- You can now customize these files freely
-
-**Subsequent Prebuilds** (widget folder exists):
-
-- **Skips template copy** - your customizations are preserved
-- Only copies your existing widget files to native projects
-- Applies necessary configuration (package names, bundle IDs, etc.)
-
-This means you can safely modify widget code after the first prebuild without losing changes. Your customized widget files will be used in all future builds.
-
-## How It Works
-
-1. **Prebuild**: Config plugin copies widget templates (first time) or your custom widgets (subsequent times) to native projects
-2. **Customization**: Edit widget files in `/{widgetName}` folder - changes persist across prebuilds
-3. **Data Sync**: Native module provides JS functions to share data between app and widgets
-4. **Updates**: Widgets automatically refresh when you call `reloadAll()` or at system intervals
+---
 
 ## License
 
 MIT
+
+---
+
+<p align="center">
+  <a href="https://github.com/M1FurkanYilmaz/fumedeme-expo-widget">GitHub Repository</a> •
+  <a href="https://github.com/M1FurkanYilmaz/fumedeme-expo-widget/issues">Report Issues</a>
+</p>
