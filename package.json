@@ -1,6 +1,6 @@
 {
   "name": "fumedeme-expo-widget",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Expo native module for generating widget to React Native Expo applications by Fumedeme",
   "main": "build/index.js",
   "types": "build/index.d.ts",
@@ -16,6 +16,14 @@
     "open:ios": "xed example/ios",
     "open:android": "open -a \"Android Studio\" example/android"
   },
+  "files": [
+    "build/",
+    "plugin/build/",
+    "android/",
+    "ios/",
+    "app.plugin.js",
+    "expo-module.config.json"
+  ],
   "keywords": [
     "react-native",
     "expo",
