@@ -8,8 +8,8 @@
   <a href="https://www.npmjs.com/package/fumedeme-expo-widget"><img src="https://img.shields.io/npm/v/fumedeme-expo-widget.svg" /></a>
   <img src="https://img.shields.io/npm/dm/fumedeme-expo-widget.svg" />
   <img src="https://img.shields.io/badge/platform-iOS%20%7C%20Android-blue" />
-  <img src="https://img.shields.io/badge/expo%20modules-supported-green" />
-  <img src="https://img.shields.io/github/stars/M1FurkanYilmaz/fumedeme-expo-widget?style=social" />
+  <img src="https://img.shields.io/badge/swiftUI-iOS%20widgets-green" />
+  <img src="https://img.shields.io/badge/glance-Android%20widgets-green" />
 </p>
 
 <p align="center">
@@ -104,7 +104,7 @@ npm install fumedeme-expo-widget
 After configuration, run:
 
 ```bash
-npx expo prebuild
+npx expo prebuild --clean
 ```
 
 ## Usage
@@ -128,7 +128,7 @@ await reloadAll();
 ```javascript
 import { getItem, setItem, reloadAll } from "fumedeme-expo-widget";
 
-const GROUP_ID = "group.expo.modules.examplestation.example";
+const GROUP_ID = "group.expo.modules.exampleweather.example";
 
 // Update widget data
 const updateWidget = async (temp, condition) => {
@@ -162,11 +162,11 @@ const currentTemp = await getItem("temperature", GROUP_ID);
 
 ## API Reference
 
-| Function                       | Purpose                       | Example                                         |
-| ------------------------------ | ----------------------------- | ----------------------------------------------- |
-| `setItem(key, value, groupId)` | Save data to shared storage   | `await setItem("score", "100", groupId)`        |
-| `getItem(key, groupId)`        | Read data from shared storage | `const score = await getItem("score", groupId)` |
-| `reloadAll()`                  | Force all widgets to refresh  | `await reloadAll()`                             |
+| Function                       | Purpose                       | Example                                    |
+| ------------------------------ | ----------------------------- | ------------------------------------------ |
+| `setItem(key, value, groupId)` | Save data to shared storage   | `setItem("score", "100", groupId)`         |
+| `getItem(key, groupId)`        | Read data from shared storage | `const score =  getItem("score", groupId)` |
+| `reloadAll()`                  | Force all widgets to refresh  | `reloadAll()`                              |
 
 ---
 
