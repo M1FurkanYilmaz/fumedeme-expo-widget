@@ -117,7 +117,7 @@ import { setItem, reloadAll } from "fumedeme-expo-widget";
 const GROUP_ID = "group.expo.modules.examplestation.example";
 
 // Write data to shared storage
-await setItem("userScore", "1337", GROUP_ID);
+await setItem("stationName", "Kadıköy Station - 5 mins", GROUP_ID);
 
 // Trigger widget refresh
 await reloadAll();
