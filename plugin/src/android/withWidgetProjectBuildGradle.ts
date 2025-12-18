@@ -7,14 +7,35 @@ import { ConfigPlugin, withProjectBuildGradle } from "@expo/config-plugins";
  */
 export const withWidgetProjectBuildGradle: ConfigPlugin = (config) => {
   return withProjectBuildGradle(config, async (newConfig) => {
-    const buildGradle = newConfig.modResults.contents;
+    let buildGradle = newConfig.modResults.contents;
 
-    const search = /dependencies\s?{/;
-    const replace = `dependencies {
-    classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:\${project.hasProperty('kotlinVersion') ? project.ext.kotlinVersion : '1.9.25'}"`;
+    //     if (!buildGradle.includes("alias(libs.plugins.compose.compiler)")) {
+    //       if (buildGradle.includes("plugins {")) {
+    //         buildGradle = buildGradle.replace(
+    //           /plugins\s*{/,
+    //           `plugins {
+    //     alias(libs.plugins.compose.compiler)`
+    //         );
+    //       } else {
+    //         buildGradle =
+    //           `plugins {
+    //     alias(libs.plugins.compose.compiler)
+    // }
 
-    const newBuildGradle = buildGradle.replace(search, replace);
-    newConfig.modResults.contents = newBuildGradle;
+    // ` + buildGradle;
+    //       }
+    //     }
+
+    if (!buildGradle.includes("kotlin-compose-compiler-plugin")) {
+      const search = /dependencies\s?{/;
+      const replace = `dependencies {
+      classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:\${project.hasProperty('kotlinVersion') ? project.ext.kotlinVersion : '2.0.21'}"
+      classpath "org.jetbrains.kotlin:kotlin-compose-compiler-plugin:\${project.hasProperty('kotlinVersion') ? project.ext.kotlinVersion : '2.0.21'}"
+      classpath("org.jetbrains.kotlin.plugin.compose:org.jetbrains.kotlin.plugin.compose.gradle.plugin:\${project.hasProperty('kotlinVersion') ? project.ext.kotlinVersion : '2.0.21'}")`;
+      const newBuildGradle = buildGradle.replace(search, replace);
+      newConfig.modResults.contents = newBuildGradle;
+    }
+
     return newConfig;
   });
 };

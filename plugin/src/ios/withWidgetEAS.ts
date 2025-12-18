@@ -3,8 +3,7 @@ import { ConfigPlugin } from "@expo/config-plugins";
 interface Props {
   widgetName: string;
 }
-// Bu plugin, ekstra bir props kullanmıyor; tip olarak yine de ikinci parametreyi
-// kabul edecek şekilde tanımlamamız gerekiyor ki ConfigPlugin imzasıyla uyumlu olsun.
+
 export const withWidgetEAS: ConfigPlugin<Props> = (config, { widgetName }) => {
   config.extra = config.extra || {};
   config.extra.eas = config.extra.eas || {};
@@ -16,29 +15,34 @@ export const withWidgetEAS: ConfigPlugin<Props> = (config, { widgetName }) => {
   config.extra.eas.build.experimental.ios.appExtensions =
     config.extra.eas.build.experimental.ios.appExtensions || [];
 
-  const widget = config.extra.eas.build.experimental.ios.appExtensions.find(
-    (extension: { widgetName?: string }) => extension.widgetName === widgetName
-  );
-
-  if (widget) {
+  const bundleIdentifier = config.ios?.bundleIdentifier || "";
+  if (!bundleIdentifier) {
     throw new Error(
-      `[withWidget] Found existing widget extension in app.json at config.extra.eas.build.experimental.ios.appExtensions. Please remove it and try again.`
+      "[withWidget] Unable to find bundleIdentifier in app.json at config.ios.bundleIdentifier. Please add it and try again."
     );
   }
 
-  const bundleIdentifier = config.ios?.bundleIdentifier || "";
+  const extensionBundleId = `${bundleIdentifier}.${widgetName.toLowerCase()}`;
 
-  if (!bundleIdentifier) {
-    throw new Error(
-      `[withWidget] Unable to find bundleIdentifier in app.json at config.ios.bundleIdentifier. Please add it and try again.`
+  // Check if this specific widget already exists
+  const existingWidget =
+    config.extra.eas.build.experimental.ios.appExtensions.find(
+      (extension: { bundleIdentifier?: string }) =>
+        extension.bundleIdentifier === extensionBundleId
     );
+
+  if (existingWidget) {
+    console.log(
+      `[withWidget] Widget extension ${widgetName} already configured, skipping...`
+    );
+    return config;
   }
 
   config.extra.eas.build.experimental.ios.appExtensions = [
     ...config.extra.eas.build.experimental.ios.appExtensions,
     {
-      widgetName: widgetName,
-      bundleIdentifier: `${bundleIdentifier}.widget`,
+      targetName: widgetName,
+      bundleIdentifier: extensionBundleId,
     },
   ];
 

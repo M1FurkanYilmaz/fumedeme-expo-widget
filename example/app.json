@@ -14,12 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "expo.modules.fumedemeexpowidget.example",
-      "entitlements": {
-        "com.apple.security.application-groups": [
-          "group.expo.modules.istasyondeneme.example"
-        ]
-      }
+      "bundleIdentifier": "expo.modules.fumedemeexpowidget.example"
     },
     "android": {
       "adaptiveIcon": {
@@ -35,14 +30,40 @@
     },
     "plugins": [
       [
-        "fumedeme-expo-widget",
+        "expo-build-properties",
         {
-          "widgetName": "DenemeWidget",
-          "ios": {
-            "devTeamId": "YOUR_TEAM_ID",
-            "appGroupIdentifier": "group.expo.modules.istasyondeneme.example"
+          "android": {
+            "kotlinVersion": "2.0.0",
+            "compileSdkVersion": 34,
+            "targetSdkVersion": 34,
+            "buildFeatures": {
+              "compose": true
+            },
+            "composeCompilerVersion": "1.5.15",
+            "kotlinOptions": {
+              "jvmTarget": "1.8"
+            }
           }
         }
+      ],
+      [
+        "./../app.plugin.js",
+        [
+          {
+            "widgetName": "ExampleStationWidget",
+            "ios": {
+              "devTeamId": "YOUR_TEAM_ID",
+              "appGroupIdentifier": "group.expo.modules.examplestation.example"
+            }
+          },
+          {
+            "widgetName": "ExampleWeatherWidget",
+            "ios": {
+              "devTeamId": "YOUR_TEAM_ID",
+              "appGroupIdentifier": "group.expo.modules.exampleweather.example"
+            }
+          }
+        ]
       ]
     ]
   }

@@ -1,334 +1,241 @@
 // widget.kt
 package {{PACKAGE_NAME}}
 
-import android.app.PendingIntent
-import android.appwidget.AppWidgetManager
-import android.appwidget.AppWidgetProvider
 import android.content.Context
-import android.os.Bundle
-import android.content.Intent
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.glance.GlanceId
+import androidx.glance.GlanceModifier
+import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.GlanceAppWidgetReceiver
+import androidx.glance.appwidget.cornerRadius
+import androidx.glance.appwidget.provideContent
+import androidx.glance.appwidget.action.actionRunCallback
+import androidx.glance.appwidget.state.updateAppWidgetState
+import androidx.glance.background
+import androidx.glance.layout.*
+import androidx.glance.text.Text
+import androidx.glance.text.TextStyle
+import androidx.glance.text.FontWeight
+import androidx.glance.unit.ColorProvider
+import androidx.glance.action.ActionParameters
+import androidx.glance.action.clickable
+import androidx.glance.currentState
+import androidx.glance.state.GlanceStateDefinition
+import androidx.glance.state.PreferencesGlanceStateDefinition
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.stringPreferencesKey
 import android.util.Log
-import android.view.View
-import android.widget.RemoteViews
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import androidx.glance.appwidget.GlanceAppWidgetManager
+import androidx.glance.appwidget.action.ActionCallback
+import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import kotlinx.coroutines.withContext
-import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.json.Json
-import java.net.HttpURLConnection
-import java.net.URL
-import kotlinx.serialization.Serializable
 
+// Define state keys
+object {{WIDGET_NAME}}StateKeys {
+    val DATA_KEY = stringPreferencesKey("widget_data")
+    val LAST_UPDATE = stringPreferencesKey("last_update")
+}
 
-@Serializable
-data class Plug(
-    val plugged: Boolean,
-    val inUse: Boolean
-) {
-    fun getStatusColor(): Int {
-        return when (plugged to inUse) {
-            false to false -> android.graphics.Color.GREEN
-            true to false -> android.graphics.Color.YELLOW
-            true to true -> android.graphics.Color.RED
-            false to true -> android.graphics.Color.GRAY
-            else -> android.graphics.Color.GRAY
+class {{WIDGET_NAME}}_Widget : GlanceAppWidget() {
+    
+    // Use PreferencesGlanceStateDefinition for state management
+    override val stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
+    
+    override suspend fun provideGlance(context: Context, id: GlanceId) {
+        provideContent {
+            {{WIDGET_NAME}}Content(context)
         }
     }
 }
 
-@Serializable
-data class Device(
-    val id: String,
-    val plugs: List<Plug>
-)
+@Composable
+fun {{WIDGET_NAME}}Content(context: Context) {
+    // Access current state
+    val prefs = currentState<Preferences>()
+    val data = prefs[{{WIDGET_NAME}}StateKeys.DATA_KEY] ?: "No data yet"
+    val lastUpdate = prefs[{{WIDGET_NAME}}StateKeys.LAST_UPDATE] ?: ""
+    
+    Log.d("{{WIDGET_NAME}}", "Composing widget with data: $data")
+    
+    Column(
+        modifier = GlanceModifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .background(ColorProvider(Color.White))
+            .cornerRadius(16.dp),
+        verticalAlignment = Alignment.Vertical.CenterVertically,
+        horizontalAlignment = Alignment.Horizontal.CenterHorizontally
+    ) {
+        Text(
+            text = "{{WIDGET_NAME}}",
+            style = TextStyle(
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = ColorProvider(Color(0xFF2196F3))
+            )
+        )
+        
+        Spacer(modifier = GlanceModifier.height(16.dp))
+        
+        Text(
+            text = "Data received from app:",
+            style = TextStyle(
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                color = ColorProvider(Color(0xFF666666))
+            )
+        )
+        
+        Spacer(modifier = GlanceModifier.height(8.dp))
+        
+        val displayColor = if (data != "No data yet") Color(0xFF4CAF50) else Color(0xFF999999)
+        
+        Text(
+            text = data,
+            style = TextStyle(
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Normal,
+                color = ColorProvider(displayColor)
+            )
+        )
+        
+        if (lastUpdate.isNotEmpty()) {
+            Spacer(modifier = GlanceModifier.height(8.dp))
+            Text(
+                text = "Updated: $lastUpdate",
+                style = TextStyle(
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = ColorProvider(Color(0xFFAAAAAA))
+                )
+            )
+        }
+        
+        // Optional: Add a refresh button
+        Spacer(modifier = GlanceModifier.height(16.dp))
+        Row(
+            modifier = GlanceModifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            horizontalAlignment = Alignment.Horizontal.CenterHorizontally
+        ) {
+            Box(
+                modifier = GlanceModifier
+                    .background(ColorProvider(Color(0xFF2196F3)))
+                    .cornerRadius(8.dp)
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .clickable(actionRunCallback<Refresh{{WIDGET_NAME}}Action>()),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Refresh",
+                    style = TextStyle(
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = ColorProvider(Color.White)
+                    )
+                )
+            }
+        }
+    }
+}
 
-class {{WIDGET_NAME}} : AppWidgetProvider() {
-    private val TAG = "{{WIDGET_NAME}}"
+// Action callback for refresh button
+class Refresh{{WIDGET_NAME}}Action : ActionCallback {
+    override suspend fun onAction(
+        context: Context,
+        glanceId: GlanceId,
+        parameters: ActionParameters
+    ) {
+        Log.d("{{WIDGET_NAME}}", "Refresh{{WIDGET_NAME}}Action triggered")
+        
+        // Load data from SharedPreferences
+        val data = {{WIDGET_NAME}}_getItem(context, "savedData", "{{GROUP_IDENTIFIER}}") ?: "No data"
+        val timestamp = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault())
+            .format(java.util.Date())
+        
+        // Update widget state
+        updateAppWidgetState(context, glanceId) { prefs ->
+            prefs[{{WIDGET_NAME}}StateKeys.DATA_KEY] = data
+            prefs[{{WIDGET_NAME}}StateKeys.LAST_UPDATE] = timestamp
+        }
+        
+        // Trigger widget update
+        {{WIDGET_NAME}}_Widget().update(context, glanceId)
+        
+        Log.d("{{WIDGET_NAME}}", "Widget state updated with: $data")
+    }
+}
+
+class {{WIDGET_NAME}} : GlanceAppWidgetReceiver() {
+    override val glanceAppWidget: GlanceAppWidget = {{WIDGET_NAME}}_Widget()
+    
+    private val coroutineScope = MainScope()
     
     override fun onUpdate(
         context: Context,
-        appWidgetManager: AppWidgetManager,
+        appWidgetManager: android.appwidget.AppWidgetManager,
         appWidgetIds: IntArray
     ) {
-        Log.d(TAG, "onUpdate called for ${appWidgetIds.size} widgets")
-        
-        // Set up the refresh button for each widget
-        for (appWidgetId in appWidgetIds) {
-            val views = RemoteViews(context.packageName, R.layout.{{LAYOUT_NAME}})
-            
-            // Create refresh intent
-            val refreshIntent = Intent(context, {{WIDGET_NAME}}::class.java)
-            refreshIntent.action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
-            refreshIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, intArrayOf(appWidgetId))
-            val pendingIntent = PendingIntent.getBroadcast(
-                context, 
-                appWidgetId, 
-                refreshIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            views.setOnClickPendingIntent(R.id.refreshButton, pendingIntent)
-            
-            // Update the widget initially with the refresh button
-            appWidgetManager.updateAppWidget(appWidgetId, views)
-        }
-        
-        // Now fetch data and update content
-        fetchDataAndUpdateWidgets(context, appWidgetManager, appWidgetIds)
-    }
-    
-    private fun fetchDataAndUpdateWidgets(
-        context: Context,
-        appWidgetManager: AppWidgetManager,
-        appWidgetIds: IntArray
-    ) {
-        CoroutineScope(Dispatchers.Main).launch {
-            val stationName =
-                (getItem(context, "savedData", "{{GROUP_IDENTIFIER}}") ?: "").trim()
-
-            if (stationName.isEmpty()) {
-                Log.d(TAG, "Favori istasyon bulunamadı, kullanıcıya uyarı gösteriliyor.")
-                for (appWidgetId in appWidgetIds) {
-                    showNoFavoriteState(context, appWidgetManager, appWidgetId)
-                }
-                return@launch
-            }
-
-            try {
-                Log.d(TAG, "Uygulamadan alınan istasyon adı: $stationName")
-                val devices = DeviceDataManager.shared.fetchDevices()
-                Log.d(TAG, "Fetched ${devices.size} devices")
-                Log.d(TAG, "Fetched ${devices} devices")
-
-                for (appWidgetId in appWidgetIds) {
-                    updateWidgetContent(context, appWidgetManager, appWidgetId, devices, stationName)
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error fetching device data", e)
-                // Update widgets with error state
-                for (appWidgetId in appWidgetIds) {
-                    val errorViews =
-                        RemoteViews(context.packageName, R.layout.{{LAYOUT_NAME}})
-                    errorViews.setTextViewText(R.id.lastUpdated, "Error: Cannot load data")
-                    appWidgetManager.updateAppWidget(appWidgetId, errorViews)
-                }
-            }
-        }
-    }
-    
-    private fun updateWidgetContent(
-        context: Context,
-        appWidgetManager: AppWidgetManager,
-        appWidgetId: Int,
-        devices: List<Device>,
-        stationName: String
-    ) {
+        Log.d("{{WIDGET_NAME}}", "=== onUpdate called for ${appWidgetIds.size} widgets ===")
         try {
-            val widgetSize = getWidgetSize(appWidgetManager, appWidgetId)
-            val views = RemoteViews(context.packageName, R.layout.{{LAYOUT_NAME}})
-
-            // Başlıkta istasyon adını göster; boşsa varsayılan başlığı kullan
-            val title =
-                if (stationName.isNotEmpty()) stationName else context.getString(R.string.app_name)
-            views.setTextViewText(R.id.widgetTitle, title)
-            views.setTextViewText(
-                R.id.widgetSubtitle,
-                context.getString(R.string.widget_subtitle)
-            )
+            super.onUpdate(context, appWidgetManager, appWidgetIds)
             
-            // Determine how many devices to show based on widget size
-            val deviceLimit = when (widgetSize) {
-                WidgetSize.SMALL -> 2
-                WidgetSize.MEDIUM -> 4
-                WidgetSize.LARGE -> 6
-            }
-            
-            // Hide all device views initially
-            for (i in 1..6) {
-                views.setViewVisibility(context.resources.getIdentifier("device$i", "id", context.packageName), View.GONE)
-            }
-            
-            // Show and update devices based on data
-            val limitedDevices = devices.take(deviceLimit)
-            limitedDevices.forEachIndexed { index, device ->
-                val deviceViewId = context.resources.getIdentifier("device${index + 1}", "id", context.packageName)
-                val deviceTextId = context.resources.getIdentifier("deviceId${index + 1}", "id", context.packageName)
-                
-                Log.d(TAG, "Updating device ${index + 1}: ${device.id} with ${device.plugs.size} plugs")
-                Log.d(TAG, "View IDs - device: $deviceViewId, deviceText: $deviceTextId")
-
-                // Make device view visible and set the device ID text
-                views.setViewVisibility(deviceViewId, View.VISIBLE)
-                views.setTextViewText(deviceTextId, device.id)
-
-                
-                // Update plug status indicators
-                val maxPlugs = 4 // Max plugs per device in our layout
-                
-                // Hide all plugs first
-                for (plugIdx in 1..maxPlugs) {
-                    val plugViewId = context.resources.getIdentifier(
-                        "plug${index + 1}_$plugIdx", 
-                        "id", 
-                        context.packageName
-                    )
-                    views.setViewVisibility(plugViewId, View.GONE)
-                }
-                
-                // Show and update available plugs
-                device.plugs.forEachIndexed { plugIdx, plug ->
-                    if (plugIdx < maxPlugs) {
-                        val plugViewId = context.resources.getIdentifier(
-                            "plug${index + 1}_${plugIdx + 1}", 
-                            "id", 
-                            context.packageName
-                        )
+            // Launch coroutine to update widgets
+            coroutineScope.launch {
+                try {
+                    val manager = GlanceAppWidgetManager(context)
+                    
+                    appWidgetIds.forEach { appWidgetId ->
+                        Log.d("{{WIDGET_NAME}}", "Updating widget ID: $appWidgetId")
+                        val glanceId = manager.getGlanceIdBy(appWidgetId)
                         
-                        views.setViewVisibility(plugViewId, View.VISIBLE)
-                        views.setInt(plugViewId, "setBackgroundColor", plug.getStatusColor())
+                        // Load fresh data from SharedPreferences
+                        val data = {{WIDGET_NAME}}_getItem(context, "savedData", "{{GROUP_IDENTIFIER}}") ?: "No data"
+                        val timestamp = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault())
+                            .format(java.util.Date())
+                        
+                        Log.d("{{WIDGET_NAME}}", "Loaded data from SharedPreferences: $data")
+                        
+                        // Update widget state with fresh data
+                        updateAppWidgetState(context, glanceId) { prefs ->
+                            prefs[{{WIDGET_NAME}}StateKeys.DATA_KEY] = data
+                            prefs[{{WIDGET_NAME}}StateKeys.LAST_UPDATE] = timestamp
+                        }
+                        
+                        // Trigger widget update
+                        glanceAppWidget.update(context, glanceId)
+                        
+                        Log.d("{{WIDGET_NAME}}", "Widget state and UI updated successfully")
                     }
+                } catch (e: Exception) {
+                    Log.e("{{WIDGET_NAME}}", "Error updating widget in coroutine", e)
                 }
             }
             
-            // Update last updated timestamp
-            val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-            views.setTextViewText(R.id.lastUpdated, "Last updated: ${timeFormat.format(Date())}")
-            
-            // Update widget
-            appWidgetManager.updateAppWidget(appWidgetId, views)
-            Log.d(TAG, "{{WIDGET_NAME}} $appWidgetId updated with ${limitedDevices.size} devices")
-            
+            Log.d("{{WIDGET_NAME}}", "=== onUpdate completed successfully ===")
         } catch (e: Exception) {
-            Log.e(TAG, "Error updating {{WIDGET_NAME}} $appWidgetId", e)
+            Log.e("{{WIDGET_NAME}}", "Error in onUpdate", e)
         }
-    }
-
-    private fun showNoFavoriteState(
-        context: Context,
-        appWidgetManager: AppWidgetManager,
-        appWidgetId: Int
-    ) {
-        val views = RemoteViews(context.packageName, R.layout.{{LAYOUT_NAME}})
-        views.setTextViewText(
-            R.id.widgetTitle,
-            context.getString(R.string.no_favorite_station_title)
-        )
-        views.setTextViewText(
-            R.id.widgetSubtitle,
-            context.getString(R.string.no_favorite_station_message)
-        )
-        views.setTextViewText(
-            R.id.lastUpdated,
-            context.getString(R.string.no_favorite_station_last_updated)
-        )
-
-        for (i in 1..6) {
-            val deviceId = context.resources.getIdentifier("device$i", "id", context.packageName)
-            if (deviceId != 0) {
-                views.setViewVisibility(deviceId, View.GONE)
-            }
-        }
-
-        appWidgetManager.updateAppWidget(appWidgetId, views)
-    }
-    
-    private fun getWidgetSize(appWidgetManager: AppWidgetManager, appWidgetId: Int): WidgetSize {
-        val options = appWidgetManager.getAppWidgetOptions(appWidgetId)
-        val width = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH)
-        val height = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT)
-
-        // Hem en hem boyu dikkate alarak yaklaşık bir "yoğunluk" hesabı yapıyoruz.
-        // Böylece çok geniş ama alçak ya da çok yüksek ama dar widget'larda gereğinden
-        // fazla/az cihaz göstermeyip boşluk hissini azaltıyoruz.
-        return when {
-            width < 140 || height < 80 -> WidgetSize.SMALL
-            width < 260 || height < 150 -> WidgetSize.MEDIUM
-            else -> WidgetSize.LARGE
-        }
-    }
-    
-    enum class WidgetSize {
-        SMALL, MEDIUM, LARGE
-    }
-    
-    // Handle widget resize
-    override fun onAppWidgetOptionsChanged(
-        context: Context,
-        appWidgetManager: AppWidgetManager,
-        appWidgetId: Int,
-        newOptions: Bundle
-    ) {
-        fetchDataAndUpdateWidgets(context, appWidgetManager, intArrayOf(appWidgetId))
-        super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions)
     }
 }
 
-internal fun getItem(
+private fun {{WIDGET_NAME}}_getItem(
     context: Context,
     key: String,
     preferenceName: String
 ): String? {
-    val preferences = context.getSharedPreferences(preferenceName, Context.MODE_PRIVATE)
-    return preferences.getString(key, null)
-}
-
-class DeviceDataManager private constructor() {
-    private val TAG = "DeviceDataManager"
-    private val apiUrl = "http://10.0.2.2:3000/devices"
-    
-    suspend fun fetchDevices(): List<Device> {
-        return withContext(Dispatchers.IO) {
-            try {
-                Log.d(TAG, "Starting fetch from $apiUrl")
-                val url = URL(apiUrl)
-                val connection = url.openConnection() as HttpURLConnection
-                connection.connectTimeout = 5000
-                connection.readTimeout = 5000
-                connection.requestMethod = "GET"
-                
-                val responseCode = connection.responseCode
-                Log.d(TAG, "HTTP response code: $responseCode")
-                
-                if (responseCode == HttpURLConnection.HTTP_OK) {
-                    val inputStream = connection.inputStream
-                    val response = inputStream.bufferedReader().use { it.readText() }
-                    Log.d(TAG, "Raw response: $response")
-                    
-                    try {
-                        // First try parsing as a wrapped object with "devices" key
-                        val jsonObject = Json { ignoreUnknownKeys = true }.decodeFromString<Map<String, List<Device>>>(response)
-                        val devices = jsonObject["devices"] ?: emptyList()
-                        Log.d(TAG, "Parsed ${devices.size} devices from wrapped JSON")
-                        return@withContext devices
-                    } catch (e: Exception) {
-                        Log.d(TAG, "Failed to parse as wrapped object, trying direct array")
-                        
-                        // If that fails, try parsing as a direct array
-                        try {
-                            val devices = Json { ignoreUnknownKeys = true }.decodeFromString<List<Device>>(response)
-                            Log.d(TAG, "Parsed ${devices.size} devices from direct JSON array")
-                            return@withContext devices
-                        } catch (e2: Exception) {
-                            Log.e(TAG, "JSON parsing error: ${e2.message}")
-                            return@withContext emptyList()
-                        }
-                    }
-                } else {
-                    Log.e(TAG, "HTTP error: $responseCode")
-                    return@withContext emptyList()
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Network error: ${e.message}")
-                e.printStackTrace()
-                return@withContext emptyList()
-            }
-        }
-    }
-    
-    companion object {
-        val shared = DeviceDataManager()
+    try {
+        Log.d("{{WIDGET_NAME}}", "getItem - preference: $preferenceName, key: $key")
+        val preferences = context.getSharedPreferences(preferenceName, Context.MODE_PRIVATE)
+        val value = preferences.getString(key, null)
+        Log.d("{{WIDGET_NAME}}", "getItem - value: $value")
+        return value
+    } catch (e: Exception) {
+        Log.e("{{WIDGET_NAME}}", "Error in getItem", e)
+        return null
     }
 }
