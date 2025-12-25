@@ -67,12 +67,16 @@ export const addBroadcastExtensionXcodeTarget = async (
     frameworkFileWidgetKit?.path,
   ].filter((path): path is string => path !== undefined);
 
+  const filesForPbxGroup = topLevelFiles.filter(
+    (file) => file !== "Assets.xcassets"
+  );
+
   // Add PBX group first so files have a parent
   const groupUuid = addPbxGroup(
     proj,
     productFile,
     extensionName,
-    topLevelFiles
+    filesForPbxGroup
   );
 
   // Then add all build phases including resources
@@ -196,8 +200,9 @@ const addProductFile = (
     sourceTree: "BUILT_PRODUCTS_DIR",
   };
 
-  proj.hash.project.objects.PBXFileReference[`${fileRefUuid}_comment`] =
-    `${extensionName}.appex`;
+  proj.hash.project.objects.PBXFileReference[
+    `${fileRefUuid}_comment`
+  ] = `${extensionName}.appex`;
 
   if (!proj.hash.project.objects.PBXBuildFile) {
     proj.hash.project.objects.PBXBuildFile = {};
@@ -211,8 +216,9 @@ const addProductFile = (
     },
   };
 
-  proj.hash.project.objects.PBXBuildFile[`${buildFileUuid}_comment`] =
-    `${extensionName}.appex in Embed App Extensions`;
+  proj.hash.project.objects.PBXBuildFile[
+    `${buildFileUuid}_comment`
+  ] = `${extensionName}.appex in Embed App Extensions`;
 
   const productFile = {
     basename: `${extensionName}.appex`,
@@ -399,36 +405,80 @@ const addBuildPhases = (
     );
   }
 
-  // Resources build phase - manually create to ensure proper parent reference
-  const assetsFileRef = proj.addResourceFile("Assets.xcassets", {}, groupUuid);
+  // Resources build phase - properly add Assets.xcassets to the widget target
+  // Always create a new file reference for each widget to avoid sharing between widgets
+  const assetsFileRefUuid = proj.generateUuid();
 
-  if (assetsFileRef) {
-    const resourcesBuildPhaseUuid = proj.generateUuid();
+  if (!proj.hash.project.objects.PBXFileReference) {
+    proj.hash.project.objects.PBXFileReference = {};
+  }
 
-    if (!proj.hash.project.objects.PBXResourcesBuildPhase) {
-      proj.hash.project.objects.PBXResourcesBuildPhase = {};
-    }
+  proj.hash.project.objects.PBXFileReference[assetsFileRefUuid] = {
+    isa: "PBXFileReference",
+    lastKnownFileType: "folder.assetcatalog",
+    path: "Assets.xcassets",
+    sourceTree: '"<group>"',
+  };
+  proj.hash.project.objects.PBXFileReference[`${assetsFileRefUuid}_comment`] =
+    "Assets.xcassets";
 
-    proj.hash.project.objects.PBXResourcesBuildPhase[resourcesBuildPhaseUuid] =
+  // Add to the widget's PBXGroup
+  const groups = proj.hash.project.objects.PBXGroup;
+  if (groups[groupUuid] && groups[groupUuid].children) {
+    groups[groupUuid].children.push({
+      value: assetsFileRefUuid,
+      comment: "Assets.xcassets",
+    });
+  }
+
+  // Create a PBXBuildFile for the Assets.xcassets (always create a new one for each widget)
+  const assetsBuildFileUuid = proj.generateUuid();
+  if (!proj.hash.project.objects.PBXBuildFile) {
+    proj.hash.project.objects.PBXBuildFile = {};
+  }
+
+  proj.hash.project.objects.PBXBuildFile[assetsBuildFileUuid] = {
+    isa: "PBXBuildFile",
+    fileRef: assetsFileRefUuid,
+  };
+  proj.hash.project.objects.PBXBuildFile[
+    `${assetsBuildFileUuid}_comment`
+  ] = `Assets.xcassets in Resources`;
+
+  // Create the PBXResourcesBuildPhase for this widget target
+  const resourcesBuildPhaseUuid = proj.generateUuid();
+  if (!proj.hash.project.objects.PBXResourcesBuildPhase) {
+    proj.hash.project.objects.PBXResourcesBuildPhase = {};
+  }
+
+  proj.hash.project.objects.PBXResourcesBuildPhase[resourcesBuildPhaseUuid] = {
+    isa: "PBXResourcesBuildPhase",
+    buildActionMask: 2147483647,
+    files: [
       {
-        isa: "PBXResourcesBuildPhase",
-        buildActionMask: 2147483647,
-        files: [
-          {
-            value: assetsFileRef.uuid,
-            comment: "Assets.xcassets in Resources",
-          },
-        ],
-        runOnlyForDeploymentPostprocessing: 0,
-      };
+        value: assetsBuildFileUuid,
+        comment: `Assets.xcassets in Resources`,
+      },
+    ],
+    runOnlyForDeploymentPostprocessing: 0,
+  };
 
-    proj.hash.project.objects.PBXResourcesBuildPhase[
-      `${resourcesBuildPhaseUuid}_comment`
-    ] = "Resources";
+  proj.hash.project.objects.PBXResourcesBuildPhase[
+    `${resourcesBuildPhaseUuid}_comment`
+  ] = "Resources";
 
-    // Add to target's build phases
-    const target = proj.pbxNativeTargetSection()[targetUuid];
-    if (target && target.buildPhases) {
+  // Add the Resources build phase to the widget target's build phases
+  const target = proj.pbxNativeTargetSection()[targetUuid];
+  if (target && target.buildPhases) {
+    // Check if this target already has a Resources build phase
+    const hasResourcesPhase = target.buildPhases.some((phase: any) => {
+      const phaseValue = typeof phase === "object" ? phase.value : phase;
+      const phaseObj =
+        proj.hash.project.objects.PBXResourcesBuildPhase?.[phaseValue];
+      return phaseObj && phaseObj.isa === "PBXResourcesBuildPhase";
+    });
+
+    if (!hasResourcesPhase) {
       target.buildPhases.push({
         value: resourcesBuildPhaseUuid,
         comment: "Resources",
