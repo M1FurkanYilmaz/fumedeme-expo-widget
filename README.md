@@ -117,10 +117,10 @@ import { setItem, reloadAll } from "fumedeme-expo-widget";
 const GROUP_ID = "group.expo.modules.examplestation.example";
 
 // Write data to shared storage
-await setItem("stationName", "Kadıköy Station - 5 mins", GROUP_ID);
+setItem("stationName", "Kadıköy Station - 5 mins", GROUP_ID);
 
 // Trigger widget refresh
-await reloadAll();
+reloadAll();
 ```
 
 ### Data Synchronization
@@ -131,14 +131,14 @@ import { getItem, setItem, reloadAll } from "fumedeme-expo-widget";
 const GROUP_ID = "group.expo.modules.exampleweather.example";
 
 // Update widget data
-const updateWidget = async (temp, condition) => {
-  await setItem("temperature", temp, GROUP_ID);
-  await setItem("condition", condition, GROUP_ID);
-  await reloadAll();
+const updateWidget = (temp, condition) => {
+  setItem("temperature", temp, GROUP_ID);
+  setItem("condition", condition, GROUP_ID);
+  reloadAll();
 };
 
 // Read current data
-const currentTemp = await getItem("temperature", GROUP_ID);
+const currentTemp = getItem("temperature", GROUP_ID);
 ```
 
 #### Check Example Project for reference.
