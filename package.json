@@ -40,10 +40,7 @@
   "author": "Fumedeme <1M.FurkanYilmaz@gmail.com> (https://github.com/M1FurkanYilmaz)",
   "license": "MIT",
   "homepage": "https://github.com/M1FurkanYilmaz/fumedeme-expo-widget#readme",
-  "dependencies": {
-    "expo-modules-autolinking": "^3.0.23",
-    "expo-modules-core": "^3.0.28"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@expo/config-plugins": "~9.0.0",
     "@types/react": "~19.1.0",
@@ -54,6 +51,8 @@
   "peerDependencies": {
     "expo": "*",
     "react": "*",
-    "react-native": "*"
+    "react-native": "*",
+    "expo-modules-core": "*",
+    "expo-modules-autolinking": "*"
   }
 }
