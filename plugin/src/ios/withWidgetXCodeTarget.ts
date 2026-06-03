@@ -22,7 +22,6 @@ export const addBroadcastExtensionXcodeTarget = async (
     topLevelFiles,
   }: AddXcodeTargetParams & { topLevelFiles: string[] }
 ) => {
-  // If target already exists, skip everything
   if (proj.findTargetKey(extensionName)) {
     console.log(`Target ${extensionName} already exists, skipping...`);
     return;
@@ -50,37 +49,25 @@ export const addBroadcastExtensionXcodeTarget = async (
   });
 
   addToPbxProjectSection(proj, target);
-  addTargetDependency(proj, target);
+  addTargetDependency(proj, target, appName);
 
-  const frameworkFileWidgetKit = proj.addFramework("WidgetKit.framework", {
+  proj.addFramework("WidgetKit.framework", {
     target: target.uuid,
     link: false,
   });
 
-  const frameworkFileSwiftUI = proj.addFramework("SwiftUI.framework", {
+  proj.addFramework("SwiftUI.framework", {
     target: target.uuid,
     link: false,
   });
 
-  const frameworkPaths = [
-    frameworkFileSwiftUI?.path,
-    frameworkFileWidgetKit?.path,
-  ].filter((path): path is string => path !== undefined);
+  const frameworkPaths = ["SwiftUI.framework", "WidgetKit.framework"];
+  const filesForPbxGroup = topLevelFiles.filter((file) => file !== "Assets.xcassets");
 
-  const filesForPbxGroup = topLevelFiles.filter(
-    (file) => file !== "Assets.xcassets"
-  );
+  const groupUuid = addPbxGroup(proj, productFile, extensionName, filesForPbxGroup);
 
-  // Add PBX group first so files have a parent
-  const groupUuid = addPbxGroup(
-    proj,
-    productFile,
-    extensionName,
-    filesForPbxGroup
-  );
-
-  // Then add all build phases including resources
   addBuildPhases(proj, {
+    appName,
     extensionName,
     groupName,
     productFile,
@@ -101,6 +88,7 @@ const addXCConfigurationList = (
     currentProjectVersion,
     marketingVersion,
     extensionName,
+    appName,
     devTeamId,
   }: AddXcodeTargetParams
 ) => {
@@ -122,7 +110,8 @@ const addXCConfigurationList = (
     INFOPLIST_FILE: `${extensionName}/Info.plist`,
     INFOPLIST_KEY_CFBundleDisplayName: `${extensionName}`,
     INFOPLIST_KEY_NSHumanReadableCopyright: quoted(""),
-    IPHONEOS_DEPLOYMENT_TARGET: "15.1",
+    // Match modern standards needed for concurrent widget structures
+    IPHONEOS_DEPLOYMENT_TARGET: "16.0", 
     LD_RUNPATH_SEARCH_PATHS: quoted(
       "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks"
     ),
@@ -168,14 +157,11 @@ const addXCConfigurationList = (
     `Build configuration list for PBXNativeTarget ${quoted(extensionName)}`
   );
 
-  proj.updateBuildProperty(
-    "ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES",
-    "YES",
-    null,
-    proj.getFirstTarget().firstTarget.name
-  );
-
-  proj.updateBuildProperty("IPHONEOS_DEPLOYMENT_TARGET", "15.1");
+  // Keep this to make sure Swift runtimes are properly linked to the main app
+  proj.updateBuildProperty("ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES", "YES", null, appName);
+  
+  // CRITICAL FIX: Removed the line that forced 'appName' (VoltUp) to IPHONEOS_DEPLOYMENT_TARGET = "15.1"
+  // Let your app configuration or expo-widgets dictate the main app deployment target baseline instead.
 
   return xCConfigurationList;
 };
@@ -200,9 +186,7 @@ const addProductFile = (
     sourceTree: "BUILT_PRODUCTS_DIR",
   };
 
-  proj.hash.project.objects.PBXFileReference[
-    `${fileRefUuid}_comment`
-  ] = `${extensionName}.appex`;
+  proj.hash.project.objects.PBXFileReference[`${fileRefUuid}_comment`] = `${extensionName}.appex`;
 
   if (!proj.hash.project.objects.PBXBuildFile) {
     proj.hash.project.objects.PBXBuildFile = {};
@@ -211,45 +195,27 @@ const addProductFile = (
   proj.hash.project.objects.PBXBuildFile[buildFileUuid] = {
     isa: "PBXBuildFile",
     fileRef: fileRefUuid,
-    settings: {
-      ATTRIBUTES: ["RemoveHeadersOnCopy"],
-    },
+    settings: { ATTRIBUTES: ["RemoveHeadersOnCopy"] },
   };
 
-  proj.hash.project.objects.PBXBuildFile[
-    `${buildFileUuid}_comment`
-  ] = `${extensionName}.appex in Embed App Extensions`;
+  proj.hash.project.objects.PBXBuildFile[`${buildFileUuid}_comment`] = `${extensionName}.appex in Embed App Extensions`;
 
-  const productFile = {
+  return {
     basename: `${extensionName}.appex`,
     fileRef: fileRefUuid,
     uuid: buildFileUuid,
     group: groupName,
     explicitFileType: "wrapper.app-extension",
-    settings: {
-      ATTRIBUTES: ["RemoveHeadersOnCopy"],
-    },
+    settings: { ATTRIBUTES: ["RemoveHeadersOnCopy"] },
     includeInIndex: 0,
     path: `${extensionName}.appex`,
     sourceTree: "BUILT_PRODUCTS_DIR",
   };
-
-  return productFile;
 };
 
 const addToPbxNativeTargetSection = (
   proj: IOSConfig.XcodeUtils.NativeTargetSection,
-  {
-    extensionName,
-    targetUuid,
-    productFile,
-    xCConfigurationList,
-  }: {
-    extensionName: string;
-    targetUuid: string;
-    productFile: any;
-    xCConfigurationList: any;
-  }
+  { extensionName, targetUuid, productFile, xCConfigurationList }: any
 ) => {
   const target = {
     uuid: targetUuid,
@@ -267,32 +233,19 @@ const addToPbxNativeTargetSection = (
   };
 
   proj.addToPbxNativeTargetSection(target);
-
   return target;
 };
 
-const addToPbxProjectSection = (
-  proj: IOSConfig.XcodeUtils.NativeTargetSection,
-  target: any
-) => {
+const addToPbxProjectSection = (proj: IOSConfig.XcodeUtils.NativeTargetSection, target: any) => {
   proj.addToPbxProjectSection(target);
 
-  if (
-    !proj.pbxProjectSection()[proj.getFirstProject().uuid].attributes
-      .TargetAttributes
-  ) {
-    proj.pbxProjectSection()[
-      proj.getFirstProject().uuid
-    ].attributes.TargetAttributes = {};
+  const projectUuid = proj.getFirstProject().uuid;
+  if (!proj.pbxProjectSection()[projectUuid].attributes.TargetAttributes) {
+    proj.pbxProjectSection()[projectUuid].attributes.TargetAttributes = {};
   }
 
-  proj.pbxProjectSection()[
-    proj.getFirstProject().uuid
-  ].attributes.LastSwiftUpdateCheck = 1340;
-
-  proj.pbxProjectSection()[
-    proj.getFirstProject().uuid
-  ].attributes.TargetAttributes[target.uuid] = {
+  proj.pbxProjectSection()[projectUuid].attributes.LastSwiftUpdateCheck = 1340;
+  proj.pbxProjectSection()[projectUuid].attributes.TargetAttributes[target.uuid] = {
     CreatedOnToolsVersion: "13.4.1",
     ProvisioningStyle: "Automatic",
   };
@@ -300,17 +253,20 @@ const addToPbxProjectSection = (
 
 const addTargetDependency = (
   proj: IOSConfig.XcodeUtils.NativeTargetSection,
-  target: any
+  target: any,
+  appName: string
 ) => {
   if (!proj.hash.project.objects["PBXTargetDependency"]) {
     proj.hash.project.objects["PBXTargetDependency"] = {};
   }
-
   if (!proj.hash.project.objects["PBXContainerItemProxy"]) {
     proj.hash.project.objects["PBXContainerItemProxy"] = {};
   }
 
-  proj.addTargetDependency(proj.getFirstTarget().uuid, [target.uuid]);
+  const mainTargetUuid = proj.findTargetKey(appName);
+  if (mainTargetUuid) {
+    proj.addTargetDependency(mainTargetUuid, [target.uuid]);
+  }
 };
 
 const addPbxGroup = (
@@ -320,95 +276,58 @@ const addPbxGroup = (
   topLevelFiles: string[]
 ): string => {
   const existingGroupUuid = proj.findPBXGroupKey({ name: extensionName });
-
   if (existingGroupUuid) {
-    console.log(`PBXGroup for ${extensionName} already exists, skipping...`);
     return existingGroupUuid;
   }
 
-  const { uuid: pbxGroupUuid } = proj.addPbxGroup(
-    topLevelFiles,
-    extensionName,
-    extensionName
-  );
+  const { uuid: pbxGroupUuid } = proj.addPbxGroup(topLevelFiles, extensionName, extensionName);
 
-  const groups = proj.hash.project.objects["PBXGroup"];
-
-  if (pbxGroupUuid) {
-    Object.keys(groups).forEach(function (key) {
-      if (groups[key].name === undefined && groups[key].path === undefined) {
-        proj.addToPbxGroup(pbxGroupUuid, key);
-      } else if (groups[key].name === "Products") {
-        if (!groups[key].children) {
-          groups[key].children = [];
-        }
-
-        const alreadyExists = groups[key].children.some((child: any) => {
-          const childValue = typeof child === "object" ? child.value : child;
-          return childValue === productFile.fileRef;
-        });
-
-        if (!alreadyExists) {
-          groups[key].children.push({
-            value: productFile.fileRef,
-            comment: productFile.basename,
-          });
-        }
-      }
-    });
+  // Safely grab the Root MainGroup from PBXProject without looping over keys
+  const pbxProjectSection = proj.hash.project.objects["PBXProject"];
+  const projectKey = Object.keys(pbxProjectSection).find((k) => !k.endsWith("_comment"));
+  if (projectKey && pbxGroupUuid) {
+    const rootGroupUuid = pbxProjectSection[projectKey].mainGroup;
+    proj.addToPbxGroup(pbxGroupUuid, rootGroupUuid);
   }
+
+  // Safely find and update the Products group
+  const groups = proj.hash.project.objects["PBXGroup"];
+  Object.keys(groups).forEach((key) => {
+    if (key.endsWith("_comment") || typeof groups[key] !== "object") return;
+
+    if (groups[key].name === "Products") {
+      if (!groups[key].children) groups[key].children = [];
+      const alreadyExists = groups[key].children.some((child: any) => {
+        const childValue = typeof child === "object" ? child.value : child;
+        return childValue === productFile.fileRef;
+      });
+
+      if (!alreadyExists) {
+        groups[key].children.push({
+          value: productFile.fileRef,
+          comment: productFile.basename,
+        });
+      }
+    }
+  });
 
   return pbxGroupUuid;
 };
 
-type AddBuildPhaseParams = {
-  groupName: string;
-  productFile: any;
-  targetUuid: string;
-  extensionName: string;
-  frameworkPaths: string[];
-  groupUuid: string;
-};
-
 const addBuildPhases = (
   proj: IOSConfig.XcodeUtils.NativeTargetSection,
-  {
-    productFile,
-    targetUuid,
-    frameworkPaths,
-    extensionName,
-    groupUuid,
-  }: AddBuildPhaseParams
+  { productFile, targetUuid, frameworkPaths, extensionName, groupUuid, appName }: any
 ) => {
   const buildPath = quoted("");
   const swiftFileName = `${extensionName}.swift`;
 
-  // Sources build phase
-  proj.addBuildPhase(
-    [swiftFileName],
-    "PBXSourcesBuildPhase",
-    "Sources",
-    targetUuid,
-    extensionName,
-    buildPath
-  );
+  proj.addBuildPhase([swiftFileName], "PBXSourcesBuildPhase", "Sources", targetUuid, extensionName, buildPath);
 
-  // Frameworks build phase
   if (frameworkPaths.length > 0) {
-    proj.addBuildPhase(
-      frameworkPaths,
-      "PBXFrameworksBuildPhase",
-      "Frameworks",
-      targetUuid,
-      extensionName,
-      buildPath
-    );
+    proj.addBuildPhase(frameworkPaths, "PBXFrameworksBuildPhase", "Frameworks", targetUuid, extensionName, buildPath);
   }
 
-  // Resources build phase - properly add Assets.xcassets to the widget target
-  // Always create a new file reference for each widget to avoid sharing between widgets
   const assetsFileRefUuid = proj.generateUuid();
-
   if (!proj.hash.project.objects.PBXFileReference) {
     proj.hash.project.objects.PBXFileReference = {};
   }
@@ -419,10 +338,8 @@ const addBuildPhases = (
     path: "Assets.xcassets",
     sourceTree: '"<group>"',
   };
-  proj.hash.project.objects.PBXFileReference[`${assetsFileRefUuid}_comment`] =
-    "Assets.xcassets";
+  proj.hash.project.objects.PBXFileReference[`${assetsFileRefUuid}_comment`] = "Assets.xcassets";
 
-  // Add to the widget's PBXGroup
   const groups = proj.hash.project.objects.PBXGroup;
   if (groups[groupUuid] && groups[groupUuid].children) {
     groups[groupUuid].children.push({
@@ -431,7 +348,6 @@ const addBuildPhases = (
     });
   }
 
-  // Create a PBXBuildFile for the Assets.xcassets (always create a new one for each widget)
   const assetsBuildFileUuid = proj.generateUuid();
   if (!proj.hash.project.objects.PBXBuildFile) {
     proj.hash.project.objects.PBXBuildFile = {};
@@ -441,11 +357,8 @@ const addBuildPhases = (
     isa: "PBXBuildFile",
     fileRef: assetsFileRefUuid,
   };
-  proj.hash.project.objects.PBXBuildFile[
-    `${assetsBuildFileUuid}_comment`
-  ] = `Assets.xcassets in Resources`;
+  proj.hash.project.objects.PBXBuildFile[`${assetsBuildFileUuid}_comment`] = "Assets.xcassets in Resources";
 
-  // Create the PBXResourcesBuildPhase for this widget target
   const resourcesBuildPhaseUuid = proj.generateUuid();
   if (!proj.hash.project.objects.PBXResourcesBuildPhase) {
     proj.hash.project.objects.PBXResourcesBuildPhase = {};
@@ -454,45 +367,26 @@ const addBuildPhases = (
   proj.hash.project.objects.PBXResourcesBuildPhase[resourcesBuildPhaseUuid] = {
     isa: "PBXResourcesBuildPhase",
     buildActionMask: 2147483647,
-    files: [
-      {
-        value: assetsBuildFileUuid,
-        comment: `Assets.xcassets in Resources`,
-      },
-    ],
+    files: [{ value: assetsBuildFileUuid, comment: "Assets.xcassets in Resources" }],
     runOnlyForDeploymentPostprocessing: 0,
   };
+  proj.hash.project.objects.PBXResourcesBuildPhase[`${resourcesBuildPhaseUuid}_comment`] = "Resources";
 
-  proj.hash.project.objects.PBXResourcesBuildPhase[
-    `${resourcesBuildPhaseUuid}_comment`
-  ] = "Resources";
-
-  // Add the Resources build phase to the widget target's build phases
   const target = proj.pbxNativeTargetSection()[targetUuid];
   if (target && target.buildPhases) {
-    // Check if this target already has a Resources build phase
     const hasResourcesPhase = target.buildPhases.some((phase: any) => {
       const phaseValue = typeof phase === "object" ? phase.value : phase;
-      const phaseObj =
-        proj.hash.project.objects.PBXResourcesBuildPhase?.[phaseValue];
+      const phaseObj = proj.hash.project.objects.PBXResourcesBuildPhase?.[phaseValue];
       return phaseObj && phaseObj.isa === "PBXResourcesBuildPhase";
     });
 
     if (!hasResourcesPhase) {
-      target.buildPhases.push({
-        value: resourcesBuildPhaseUuid,
-        comment: "Resources",
-      });
+      target.buildPhases.push({ value: resourcesBuildPhaseUuid, comment: "Resources" });
     }
   }
 
-  // Copy files build phase
-  proj.addBuildPhase(
-    [productFile.path],
-    "PBXCopyFilesBuildPhase",
-    "Copy Files",
-    proj.getFirstTarget().uuid,
-    "app_extension",
-    buildPath
-  );
+  const mainTargetUuid = proj.findTargetKey(appName);
+  if (mainTargetUuid) {
+    proj.addBuildPhase([productFile.path], "PBXCopyFilesBuildPhase", "Copy Files", mainTargetUuid, "app_extension", buildPath);
+  }
 };
